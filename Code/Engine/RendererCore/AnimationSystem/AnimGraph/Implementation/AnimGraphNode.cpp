@@ -96,6 +96,17 @@ void ezAnimState::RampWeightUpOrDown(float& inout_fWeight, float fTargetWeight, 
   }
 }
 
+void ezAnimState::Reset()
+{
+  m_State = State::Off;
+  m_fNormalizedPlaybackPosition = 0.0f;
+  m_bRequireLoopForRampDown = true;
+  m_bHasTransitioned = false;
+  m_bHasLoopedStart = false;
+  m_bHasLoopedEnd = false;
+  m_fCurWeight = 0.0f;
+}
+
 bool ezAnimState::WillStateBeOff(bool bTriggerActive) const
 {
   return m_State == State::Off && !bTriggerActive;

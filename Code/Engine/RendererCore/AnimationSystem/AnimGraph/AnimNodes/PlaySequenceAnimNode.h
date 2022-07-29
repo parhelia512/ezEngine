@@ -2,6 +2,23 @@
 
 #include <RendererCore/AnimationSystem/AnimGraph/AnimGraphNode.h>
 
+struct ezAnimSectionMode
+{
+  using StorageType = ezUInt8;
+
+  enum Enum : ezUInt8
+  {
+    Once_SingleClip,
+    Once_AllClips,
+    Loop_SingleClip,
+    Loop_AllClips,
+
+    Default = Once_SingleClip
+  };
+};
+
+EZ_DECLARE_REFLECTABLE_TYPE(EZ_RENDERERCORE_DLL, ezAnimSectionMode);
+
 class EZ_RENDERERCORE_DLL ezPlaySequenceAnimNode : public ezAnimGraphNode
 {
   EZ_ADD_DYNAMIC_REFLECTION(ezPlaySequenceAnimNode, ezAnimGraphNode);
@@ -34,6 +51,8 @@ public:
   ezAnimationClipResourceHandle m_hStartClip;
   ezHybridArray<ezAnimationClipResourceHandle, 2> m_hMiddleClips;
   ezAnimationClipResourceHandle m_hEndClip;
+
+  ezEnum<ezAnimSectionMode> m_MiddleClipsMode; // [ property ]
 
 private:
   ezAnimGraphTriggerInputPin m_ActivePin;           // [ property ]

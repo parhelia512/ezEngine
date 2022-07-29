@@ -9,15 +9,20 @@
 #include <RendererCore/AnimationSystem/SkeletonResource.h>
 
 // clang-format off
+EZ_BEGIN_STATIC_REFLECTED_ENUM(ezAnimSectionMode, 1)
+  EZ_ENUM_CONSTANTS(ezAnimSectionMode::Once_SingleClip, ezAnimSectionMode::Once_AllClips, ezAnimSectionMode::Loop_SingleClip, ezAnimSectionMode::Loop_AllClips)
+EZ_END_STATIC_REFLECTED_ENUM;
+
 EZ_BEGIN_DYNAMIC_REFLECTED_TYPE(ezPlaySequenceAnimNode, 1, ezRTTIDefaultAllocator<ezPlaySequenceAnimNode>)
 {
   EZ_BEGIN_PROPERTIES
   {
     EZ_MEMBER_PROPERTY("Common", m_State),
 
-    EZ_ACCESSOR_PROPERTY("StartClip", GetStartClip, SetStartClip)->AddAttributes(new ezAssetBrowserAttribute("CompatibleAsset_Keyframe_Animation")),
-    EZ_ARRAY_ACCESSOR_PROPERTY("MiddleClips", MiddleClips_GetCount, MiddleClips_GetValue, MiddleClips_SetValue, MiddleClips_Insert, MiddleClips_Remove)->AddAttributes(new ezAssetBrowserAttribute("CompatibleAsset_Keyframe_Animation")),
-    EZ_ACCESSOR_PROPERTY("EndClip", GetEndClip, SetEndClip)->AddAttributes(new ezAssetBrowserAttribute("CompatibleAsset_Keyframe_Animation")),
+    EZ_ACCESSOR_PROPERTY("StartClip", GetStartClip, SetStartClip)->AddAttributes(new ezAssetBrowserAttribute("Animation Clip")),
+    EZ_ARRAY_ACCESSOR_PROPERTY("MiddleClips", MiddleClips_GetCount, MiddleClips_GetValue, MiddleClips_SetValue, MiddleClips_Insert, MiddleClips_Remove)->AddAttributes(new ezAssetBrowserAttribute("Animation Clip")),
+    EZ_ENUM_MEMBER_PROPERTY("MiddleClipsMode", ezAnimSectionMode, m_MiddleClipsMode),
+    EZ_ACCESSOR_PROPERTY("EndClip", GetEndClip, SetEndClip)->AddAttributes(new ezAssetBrowserAttribute("Animation Clip")),
 
     EZ_MEMBER_PROPERTY("Active", m_ActivePin)->AddAttributes(new ezHiddenAttribute()),
     EZ_MEMBER_PROPERTY("Weights", m_WeightsPin)->AddAttributes(new ezHiddenAttribute()),
@@ -43,7 +48,7 @@ EZ_END_DYNAMIC_REFLECTED_TYPE;
 
 ezResult ezPlaySequenceAnimNode::SerializeNode(ezStreamWriter& stream) const
 {
-  stream.WriteVersion(1);
+  stream.WriteVersion(2);
 
   EZ_SUCCEED_OR_RETURN(SUPER::SerializeNode(stream));
 
@@ -61,12 +66,14 @@ ezResult ezPlaySequenceAnimNode::SerializeNode(ezStreamWriter& stream) const
   EZ_SUCCEED_OR_RETURN(m_PlayingClipIndexPin.Serialize(stream));
   EZ_SUCCEED_OR_RETURN(m_OnFadeOutPin.Serialize(stream));
 
+  stream << m_MiddleClipsMode;
+
   return EZ_SUCCESS;
 }
 
 ezResult ezPlaySequenceAnimNode::DeserializeNode(ezStreamReader& stream)
 {
-  stream.ReadVersion(1);
+  const ezTypeVersion version = stream.ReadVersion(2);
 
   EZ_SUCCEED_OR_RETURN(SUPER::DeserializeNode(stream));
 
@@ -91,6 +98,11 @@ ezResult ezPlaySequenceAnimNode::DeserializeNode(ezStreamReader& stream)
     {
       m_hMiddleClips.RemoveAtAndSwap(i - 1);
     }
+  }
+
+  if (version >= 2)
+  {
+    stream >> m_MiddleClipsMode;
   }
 
   return EZ_SUCCESS;
@@ -178,35 +190,54 @@ void ezPlaySequenceAnimNode::Step(ezAnimGraph& graph, ezTime tDiff, const ezSkel
 {
   const bool bActive = m_ActivePin.IsTriggered(graph);
 
-  if (!m_ActivePin.IsConnected() || !m_LocalPosePin.IsConnected() || m_hMiddleClips.IsEmpty() || m_State.WillStateBeOff(bActive))
+  if (!m_ActivePin.IsConnected() || !m_LocalPosePin.IsConnected() || m_State.WillStateBeOff(bActive) || !m_hStartClip.IsValid() || !m_hEndClip.IsValid())
   {
     m_uiClipToPlay = 0xFF;
     m_uiNextClipToPlay = 0xFF;
     return;
   }
 
-  ezUInt8 uiNextClip = static_cast<ezUInt8>(m_ClipIndexPin.GetNumber(graph, m_uiNextClipToPlay));
-
-  if (uiNextClip >= m_hMiddleClips.GetCount())
+  if (m_Phase == Phase::Off)
   {
-    uiNextClip = static_cast<ezUInt8>(pTarget->GetWorld()->GetRandomNumberGenerator().UIntInRange(m_hMiddleClips.GetCount()));
+    m_Phase = Phase::Start;
+
+    // if we just start playback and middle mode is set to play all clips, always start with clip 0
+    // we don't let the user decide anything here
+    if (m_MiddleClipsMode == ezAnimSectionMode::Loop_AllClips || m_MiddleClipsMode == ezAnimSectionMode::Once_AllClips)
+    {
+      m_uiNextClipToPlay = 0;
+    }
   }
 
-  m_uiNextClipToPlay = uiNextClip;
-
-  if (m_uiClipToPlay >= m_hMiddleClips.GetCount())
+  if (m_uiNextClipToPlay == 0xFF)
   {
-    m_uiClipToPlay = uiNextClip;
-    m_uiNextClipToPlay = 0xFF; // make sure the next update will pick another random clip
+    // if the next clip is supposed to be random, check whether there is user input to specify the clip index
+    m_uiNextClipToPlay = static_cast<ezUInt8>(m_ClipIndexPin.GetNumber(graph, 0xFF));
+  }
+
+  if (m_uiNextClipToPlay == 0xFF)
+  {
+    if (!m_hMiddleClips.IsEmpty())
+    {
+      // if the next clip to play is still set to random, draw a random number
+      m_uiNextClipToPlay = static_cast<ezUInt8>(pTarget->GetWorld()->GetRandomNumberGenerator().UIntInRange(m_hMiddleClips.GetCount()));
+    }
+    else
+    {
+      m_uiNextClipToPlay = 0;
+    }
+  }
+  else if (m_uiNextClipToPlay >= m_hMiddleClips.GetCount())
+  {
+    // if the next clip to play is just outside the valid range, then we have reached the end of the playback
+    if (m_MiddleClipsMode == ezAnimSectionMode::Loop_AllClips)
+    {
+      m_uiNextClipToPlay = 0;
+    }
   }
 
   const bool bWasLooped = m_State.m_bLoop;
   EZ_SCOPE_EXIT(m_State.m_bLoop = bWasLooped);
-
-  if (m_Phase == Phase::Off)
-  {
-    m_Phase = Phase::Start;
-  }
 
   float fPrevPlaybackPos = m_State.GetNormalizedPlaybackPosition();
 
@@ -217,12 +248,14 @@ void ezPlaySequenceAnimNode::Step(ezAnimGraph& graph, ezTime tDiff, const ezSkel
   ezAnimationClipResourceHandle hCurrentClip;
   ezAnimPoseGeneratorCommandID inputCmd = 0xFFFFFFFF;
 
+  const bool bNextMiddleClipValid = m_uiNextClipToPlay < m_hMiddleClips.GetCount();
+
   if (m_Phase == Phase::Start)
   {
-    ezAnimationClipResourceHandle hStartClip = m_hStartClip.IsValid() ? m_hStartClip : m_hMiddleClips[m_uiClipToPlay];
-    ezAnimationClipResourceHandle hMiddleClip = m_hMiddleClips[uiNextClip]; // don't use m_uiNextClipToPlay here, it can be 0xFF
+    // the middle clip can be skipped entirely
+    ezAnimationClipResourceHandle hMiddleClip = bNextMiddleClipValid ? m_hMiddleClips[m_uiNextClipToPlay] : m_hEndClip;
 
-    ezResourceLock<ezAnimationClipResource> pClipStart(hStartClip, ezResourceAcquireMode::BlockTillLoaded);
+    ezResourceLock<ezAnimationClipResource> pClipStart(m_hStartClip, ezResourceAcquireMode::BlockTillLoaded);
 
     m_State.m_bLoop = true;
     m_State.m_Duration = pClipStart->GetDescriptor().GetDuration();
@@ -241,34 +274,45 @@ void ezPlaySequenceAnimNode::Step(ezAnimGraph& graph, ezTime tDiff, const ezSkel
       // guarantee that all animation events from the just finished first clip get evaluated and sent
       {
         auto& cmdE = graph.GetPoseGenerator().AllocCommandSampleEventTrack();
-        cmdE.m_hAnimationClip = hStartClip;
+        cmdE.m_hAnimationClip = m_hStartClip;
         cmdE.m_EventSampling = ezAnimPoseEventTrackSampleMode::OnlyBetween;
         cmdE.m_fPreviousNormalizedSamplePos = fPrevPlaybackPos;
         cmdE.m_fNormalizedSamplePos = 1.1f;
         inputCmd = cmdE.GetCommandID();
       }
 
-      m_Phase = Phase::Middle;
+      m_Phase = bNextMiddleClipValid ? Phase::Middle : Phase::End;
       hCurrentClip = hMiddleClip;
       fPrevPlaybackPos = 0.0f;
 
-      m_uiClipToPlay = uiNextClip; // don't use m_uiNextClipToPlay here, it can be 0xFF
-      m_uiNextClipToPlay = 0xFF;
+      m_uiClipToPlay = m_uiNextClipToPlay;
+
+      if (m_MiddleClipsMode == ezAnimSectionMode::Once_SingleClip)
+      {
+        m_uiNextClipToPlay = m_hMiddleClips.GetCount(); // one past the end -> finish
+      }
+      else if (m_MiddleClipsMode == ezAnimSectionMode::Once_AllClips || m_MiddleClipsMode == ezAnimSectionMode::Loop_AllClips)
+      {
+        EZ_ASSERT_DEBUG(m_uiNextClipToPlay == 0, "");
+        m_uiClipToPlay = 0;
+        m_uiNextClipToPlay = 1;
+      }
+      else
+      {
+        m_uiNextClipToPlay = 0xFF;
+      }
 
       m_OnNextClipPin.SetTriggered(graph, true);
     }
     else
     {
-      hCurrentClip = hStartClip;
+      hCurrentClip = m_hStartClip;
     }
   }
   else if (m_Phase == Phase::Middle)
   {
     ezAnimationClipResourceHandle hMiddleClip1 = m_hMiddleClips[m_uiClipToPlay];
-    ezAnimationClipResourceHandle hMiddleClip2 = (bWasLooped && bActive) ? m_hMiddleClips[uiNextClip] : m_hEndClip; // invalid end clip handled below
-
-    if (!hMiddleClip2.IsValid())
-      hMiddleClip2 = hMiddleClip1; // in case end clip doesn't exist
+    ezAnimationClipResourceHandle hMiddleClip2 = (bNextMiddleClipValid && bActive) ? m_hMiddleClips[m_uiNextClipToPlay] : m_hEndClip;
 
     ezResourceLock<ezAnimationClipResource> pClipMiddle1(hMiddleClip1, ezResourceAcquireMode::BlockTillLoaded);
     ezResourceLock<ezAnimationClipResource> pClipMiddle2(hMiddleClip2, ezResourceAcquireMode::BlockTillLoaded);
@@ -283,7 +327,14 @@ void ezPlaySequenceAnimNode::Step(ezAnimGraph& graph, ezTime tDiff, const ezSkel
 
     if (m_State.HasTransitioned())
     {
-      m_Phase = (bWasLooped && bActive) ? Phase::Middle : Phase::End;
+      if (!bActive)
+      {
+        m_Phase = Phase::End;
+      }
+      else
+      {
+        m_Phase = bNextMiddleClipValid ? Phase::Middle : Phase::End;
+      }
 
       // guarantee that all animation events from the just finished first clip get evaluated and sent
       {
@@ -298,15 +349,23 @@ void ezPlaySequenceAnimNode::Step(ezAnimGraph& graph, ezTime tDiff, const ezSkel
       fPrevPlaybackPos = 0.0f;
       hCurrentClip = hMiddleClip2;
 
-      m_uiClipToPlay = uiNextClip; // don't use m_uiNextClipToPlay here, it can be 0xFF
-      m_uiNextClipToPlay = 0xFF;
+      m_uiClipToPlay = m_uiNextClipToPlay;
+
+      if (m_MiddleClipsMode == ezAnimSectionMode::Once_AllClips || m_MiddleClipsMode == ezAnimSectionMode::Loop_AllClips)
+      {
+        ++m_uiNextClipToPlay;
+      }
+      else
+      {
+        m_uiNextClipToPlay = 0xFF;
+      }
 
       m_OnNextClipPin.SetTriggered(graph, true);
     }
   }
   else if (m_Phase == Phase::End)
   {
-    hCurrentClip = m_hEndClip.IsValid() ? m_hEndClip : m_hMiddleClips[m_uiClipToPlay];
+    hCurrentClip = m_hEndClip;
 
     ezResourceLock<ezAnimationClipResource> pClipEnd(hCurrentClip, ezResourceAcquireMode::BlockTillLoaded);
 
@@ -320,14 +379,22 @@ void ezPlaySequenceAnimNode::Step(ezAnimGraph& graph, ezTime tDiff, const ezSkel
     {
       m_OnFadeOutPin.SetTriggered(graph, true);
     }
+    else if (m_State.GetNormalizedPlaybackPosition() >= 1.0f && bWasLooped && bActive)
+    {
+      m_Phase = Phase::Off;
+      m_uiClipToPlay = 0xFF;
+      m_uiNextClipToPlay = 0xFF;
+      m_State.Reset();
+      return; // TODO: this will produce one frame where no animation is applied in between loops
+    }
   }
 
   if (m_State.GetWeight() <= 0.0f || !hCurrentClip.IsValid())
   {
     m_Phase = Phase::Off;
-
     m_uiClipToPlay = 0xFF;
     m_uiNextClipToPlay = 0xFF;
+    m_State.Reset();
     return;
   }
 

@@ -107,6 +107,7 @@ struct EZ_RENDERERCORE_DLL ezAnimState
   ezTime m_Duration;
   ezTime m_DurationOfQueued;
 
+  void Reset();
   bool WillStateBeOff(bool bTriggerActive) const;
   void UpdateState(ezTime tDiff);
   State GetCurrentState() const { return m_State; }

@@ -285,3 +285,7 @@ Surface;Surface
 Texture 2D;Texture 2D
 Texture Cube;Texture Cube
 Visual Script;Visual Script
+ezAnimSectionMode::Once_SingleClip;Once: Random Clip
+ezAnimSectionMode::Once_AllClips;Once: All Clips
+ezAnimSectionMode::Loop_SingleClip;Looped: Random Clip
+ezAnimSectionMode::Loop_AllClips;Looped: All Clips
