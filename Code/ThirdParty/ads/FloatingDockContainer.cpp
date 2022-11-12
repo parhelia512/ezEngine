@@ -608,6 +608,13 @@ CFloatingDockContainer::CFloatingDockContainer(CDockManager *DockManager) :
 	    SLOT(onDockAreasAddedOrRemoved()));
 
 #ifdef Q_OS_LINUX
+	const QMetaObject* m = &CFloatingDockContainer::staticMetaObject;
+	const char* szBla = m->className();
+	printf(szBla);
+	m = m->d.superdata;
+	const char* szBla2 = m->className();
+	printf(szBla2);
+
 	QDockWidget::setWidget(d->DockContainer);
 	QDockWidget::setFloating(true);
 	QDockWidget::setFeatures(QDockWidget::DockWidgetClosable

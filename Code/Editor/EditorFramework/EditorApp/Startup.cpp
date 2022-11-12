@@ -476,7 +476,7 @@ void ezQtEditorApp::SetupAndShowSplashScreen()
     s.endGroup();
   }
 
-  if (!bShowSplashScreen)
+  //if (!bShowSplashScreen)
     return;
 
   // QSvgRenderer svgRenderer(QString(":/Splash/Splash/splash.svg"));

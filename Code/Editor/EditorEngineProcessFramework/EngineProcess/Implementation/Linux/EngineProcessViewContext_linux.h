@@ -53,7 +53,7 @@ ezResult ezEditorProcessViewWindow::UpdateWindow(ezWindowHandle parentWindow, ez
   m_uiWidth = uiWidth;
   m_uiHeight = uiHeight;
   EZ_ASSERT_DEV(parentWindow.type == ezWindowHandle::Type::XCB && parentWindow.xcbWindow.m_Window != 0, "Invalid handle passed");
-  EZ_ASSERT_DEV(m_hWnd.xcbWindow.m_Window == parentWindow.xcbWindow.m_Window)
+  EZ_ASSERT_DEV(m_hWnd.xcbWindow.m_Window == parentWindow.xcbWindow.m_Window, "");
   m_hWnd.xcbWindow.m_Window = parentWindow.xcbWindow.m_Window;
 
 

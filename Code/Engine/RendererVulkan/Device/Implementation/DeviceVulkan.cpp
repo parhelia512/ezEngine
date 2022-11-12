@@ -35,6 +35,7 @@
 #include <RendererVulkan/State/StateVulkan.h>
 #include <RendererVulkan/Utils/ImageCopyVulkan.h>
 #include <RendererVulkan/Utils/PipelineBarrierVulkan.h>
+#include <Core/System/Window.h>
 
 #if EZ_ENABLED(EZ_SUPPORTS_GLFW)
 #  include <GLFW/glfw3.h>
@@ -106,12 +107,12 @@ VkResult vkSetDebugUtilsObjectNameEXT(VkDevice device, const VkDebugUtilsObjectN
 
 void vkQueueBeginDebugUtilsLabelEXT(VkQueue queue, const VkDebugUtilsLabelEXT* pLabelInfo)
 {
-  return vkQueueBeginDebugUtilsLabelEXTFunc(queue, pLabelInfo);
+ // return vkQueueBeginDebugUtilsLabelEXTFunc(queue, pLabelInfo);
 }
 
 void vkQueueEndDebugUtilsLabelEXT(VkQueue queue)
 {
-  return vkQueueEndDebugUtilsLabelEXTFunc(queue);
+ // return vkQueueEndDebugUtilsLabelEXTFunc(queue);
 }
 //
 // void vkQueueInsertDebugUtilsLabelEXT(VkQueue queue, const VkDebugUtilsLabelEXT* pLabelInfo)
@@ -121,17 +122,17 @@ void vkQueueEndDebugUtilsLabelEXT(VkQueue queue)
 
 void vkCmdBeginDebugUtilsLabelEXT(VkCommandBuffer commandBuffer, const VkDebugUtilsLabelEXT* pLabelInfo)
 {
-  return vkCmdBeginDebugUtilsLabelEXTFunc(commandBuffer, pLabelInfo);
+  //return vkCmdBeginDebugUtilsLabelEXTFunc(commandBuffer, pLabelInfo);
 }
 
 void vkCmdEndDebugUtilsLabelEXT(VkCommandBuffer commandBuffer)
 {
-  return vkCmdEndDebugUtilsLabelEXTFunc(commandBuffer);
+  //return vkCmdEndDebugUtilsLabelEXTFunc(commandBuffer);
 }
 
 void vkCmdInsertDebugUtilsLabelEXT(VkCommandBuffer commandBuffer, const VkDebugUtilsLabelEXT* pLabelInfo)
 {
-  return vkCmdInsertDebugUtilsLabelEXTFunc(commandBuffer, pLabelInfo);
+  //return vkCmdInsertDebugUtilsLabelEXTFunc(commandBuffer, pLabelInfo);
 }
 
 ezInternal::NewInstance<ezGALDevice> CreateVulkanDevice(ezAllocatorBase* pAllocator, const ezGALDeviceCreationDescription& Description)
