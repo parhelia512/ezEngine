@@ -1375,6 +1375,12 @@ void ezGALDeviceVulkan::DeletePendingResources(ezDeque<PendingDeletion>& pending
         break;
       case vk::ObjectType::eSurfaceKHR:
         m_instance.destroySurfaceKHR(reinterpret_cast<vk::SurfaceKHR&>(deletion.m_pObject));
+#if EZ_ENABLED(EZ_PLATFORM_LINUX)
+        if (deletion.m_allocation != 0)
+        {
+          ezWindowBase::DecRef( (ezUInt32) (  ezUInt64)  deletion.m_allocation);
+        }
+#endif
         break;
       case vk::ObjectType::eShaderModule:
         m_device.destroyShaderModule(reinterpret_cast<vk::ShaderModule&>(deletion.m_pObject));

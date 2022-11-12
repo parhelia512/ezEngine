@@ -5,6 +5,7 @@
 #include <EditorFramework/DocumentWindow/EngineViewWidget.moc.h>
 #include <EditorFramework/InputContexts/EditorInputContext.h>
 #include <EditorFramework/Preferences/EditorPreferences.h>
+#include <Foundation/Time/Timestamp.h>
 #include <Foundation/Utilities/GraphicsUtils.h>
 #include <GuiFoundation/ActionViews/ToolBarActionMapView.moc.h>
 
@@ -68,6 +69,11 @@ ezQtEngineViewWidget::ezQtEngineViewWidget(QWidget* pParent, ezQtEngineDocumentW
 ezQtEngineViewWidget::~ezQtEngineViewWidget()
 {
   ezEditorEngineProcessConnection::s_Events.RemoveEventHandler(ezMakeDelegate(&ezQtEngineViewWidget::EngineViewProcessEventHandler, this));
+
+  ezStringBuilder sTemp;
+  const ezDateTime dt = ezTimestamp::CurrentTimestamp();
+  sTemp.AppendFormat("Window '{7}' Created: {0}-{1}-{2}_{3}-{4}-{5}-{6}", dt.GetYear(), ezArgU(dt.GetMonth(), 2, true), ezArgU(dt.GetDay(), 2, true), ezArgU(dt.GetHour(), 2, true), ezArgU(dt.GetMinute(), 2, true), ezArgU(dt.GetSecond(), 2, true), ezArgU(dt.GetMicroseconds() / 1000, 3, true), winId());
+  ezLog::Warning("{}", sTemp);
 
   ezViewDestroyedMsgToEngine msg;
   msg.m_uiViewID = GetViewID();

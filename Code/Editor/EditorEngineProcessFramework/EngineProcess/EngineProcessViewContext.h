@@ -4,7 +4,9 @@
 #include <Core/ResourceManager/ResourceHandle.h>
 #include <Core/System/Window.h>
 #include <EditorEngineProcessFramework/EditorEngineProcessFrameworkDLL.h>
+#include <Foundation/Time/Timestamp.h>
 #include <RendererCore/Pipeline/Declarations.h>
+#include <Foundation/Logging/Log.h>
 
 class ezEngineProcessDocumentContext;
 class ezEditorEngineDocumentMsg;

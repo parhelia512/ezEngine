@@ -109,6 +109,14 @@ using ezWindowInternalHandle = ezWindowHandle;
 class EZ_CORE_DLL ezWindowBase
 {
 public:
+  static void Create(ezUInt32 hWindow);
+  static void IncRef(ezUInt32 hWindow);
+  static void DecRef(ezUInt32 hWindow);
+  static void Destroy(ezUInt32 hWindow);
+
+  static ezMutex s_lock;
+  static ezMap< ezUInt32, ezInt32> s_windowMap;
+
   virtual ~ezWindowBase() {}
 
   virtual ezSizeU32 GetClientAreaSize() const = 0;

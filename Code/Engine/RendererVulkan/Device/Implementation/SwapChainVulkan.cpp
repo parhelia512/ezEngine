@@ -170,6 +170,7 @@ ezResult ezGALSwapChainVulkan::InitPlatform(ezGALDevice* pDevice)
       surfaceCreateInfo.window = windowHandle.xcbWindow.m_Window;
 
       m_vulkanSurface = m_pVulkanDevice->GetVulkanInstance().createXcbSurfaceKHR(surfaceCreateInfo);
+      ezWindowBase::AddRef(windowHandle.xcbWindow.m_Window);
     }
     break;
   }
@@ -347,7 +348,14 @@ ezResult ezGALSwapChainVulkan::DeInitPlatform(ezGALDevice* pDevice)
   DestroySwapChainInternal(pVulkanDevice);
   if (m_vulkanSurface)
   {
+#if EZ_ENABLED(EZ_PLATFORM_LINUX)
+    ezWindowHandle windowHandle = m_WindowDesc.m_pWindow->GetNativeWindowHandle();
+    //ezWindowBase::DecRef(windowHandle.xcbWindow.m_Window);
+    pVulkanDevice->DeleteLater(m_vulkanSurface, reinterpret_cast<ezVulkanAllocation>((ezUInt64)windowHandle.xcbWindow.m_Window);
+#else
     pVulkanDevice->DeleteLater(m_vulkanSurface);
+
+#endif
   }
   return EZ_SUCCESS;
 }
