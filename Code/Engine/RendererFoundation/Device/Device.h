@@ -147,6 +147,8 @@ public:
   static ezGALDevice* GetDefaultDevice();
   static bool HasDefaultDevice();
 
+  void WaitIdle();
+
   // public in case someone external needs to lock multiple operations
   mutable ezMutex m_Mutex;
 
@@ -305,6 +307,9 @@ protected:
   virtual void EndFramePlatform() = 0;
 
   virtual void FillCapabilitiesPlatform() = 0;
+
+  virtual void WaitIdlePlatform() = 0;
+
 
   /// \endcond
 

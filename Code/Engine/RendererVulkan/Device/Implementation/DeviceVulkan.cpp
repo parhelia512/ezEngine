@@ -632,35 +632,9 @@ ezResult ezGALDeviceVulkan::ShutdownPlatform()
     return EZ_SUCCESS;
   }
 
-  m_device.waitIdle();
-  for (ezUInt32 i = 0; i < EZ_ARRAY_SIZE(m_PerFrameData); ++i)
-  {
-    // First, we wait for all fences for all submit calls. This is necessary to make sure no resources of the frame are still in use by the GPU.
-    auto& perFrameData = m_PerFrameData[i];
-    for (vk::Fence fence : perFrameData.m_CommandBufferFences)
-    {
-      vk::Result fenceStatus = m_device.getFenceStatus(fence);
-      if (fenceStatus == vk::Result::eNotReady)
-      {
-        m_device.waitForFences(1, &fence, true, 1000000000);
-      }
-    }
-    perFrameData.m_CommandBufferFences.Clear();
-  }
+  WaitIdlePlatform();
 
-  for (ezUInt32 i = 0; i < EZ_ARRAY_SIZE(m_PerFrameData); ++i)
-  {
-    {
-      EZ_LOCK(m_PerFrameData[i].m_pendingDeletionsMutex);
-      DeletePendingResources(m_PerFrameData[i].m_pendingDeletionsPrevious);
-      DeletePendingResources(m_PerFrameData[i].m_pendingDeletions);
-    }
-    {
-      EZ_LOCK(m_PerFrameData[i].m_reclaimResourcesMutex);
-      ReclaimResources(m_PerFrameData[i].m_reclaimResourcesPrevious);
-      ReclaimResources(m_PerFrameData[i].m_reclaimResources);
-    }
-  }
+  
 
   m_pDefaultPass = nullptr;
   m_pPipelineBarrier = nullptr;
@@ -1306,6 +1280,39 @@ void ezGALDeviceVulkan::FillCapabilitiesPlatform()
   m_Capabilities.m_bVertexShaderRenderTargetArrayIndex = m_extensions.m_bShaderViewportIndexLayer;
 
   m_Capabilities.m_bConservativeRasterization = false; // need to query for VK_EXT_CONSERVATIVE_RASTERIZATION
+}
+
+void ezGALDeviceVulkan::WaitIdlePlatform()
+{
+  m_device.waitIdle();
+  for (ezUInt32 i = 0; i < EZ_ARRAY_SIZE(m_PerFrameData); ++i)
+  {
+    // First, we wait for all fences for all submit calls. This is necessary to make sure no resources of the frame are still in use by the GPU.
+    auto& perFrameData = m_PerFrameData[i];
+    for (vk::Fence fence : perFrameData.m_CommandBufferFences)
+    {
+      vk::Result fenceStatus = m_device.getFenceStatus(fence);
+      if (fenceStatus == vk::Result::eNotReady)
+      {
+        m_device.waitForFences(1, &fence, true, 1000000000);
+      }
+    }
+    perFrameData.m_CommandBufferFences.Clear();
+  }
+
+  for (ezUInt32 i = 0; i < EZ_ARRAY_SIZE(m_PerFrameData); ++i)
+  {
+    {
+      EZ_LOCK(m_PerFrameData[i].m_pendingDeletionsMutex);
+      DeletePendingResources(m_PerFrameData[i].m_pendingDeletionsPrevious);
+      DeletePendingResources(m_PerFrameData[i].m_pendingDeletions);
+    }
+    {
+      EZ_LOCK(m_PerFrameData[i].m_reclaimResourcesMutex);
+      ReclaimResources(m_PerFrameData[i].m_reclaimResourcesPrevious);
+      ReclaimResources(m_PerFrameData[i].m_reclaimResources);
+    }
+  }
 }
 
 vk::PipelineStageFlags ezGALDeviceVulkan::GetSupportedStages() const
