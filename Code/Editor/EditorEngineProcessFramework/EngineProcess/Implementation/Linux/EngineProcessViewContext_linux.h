@@ -5,6 +5,8 @@ ezEditorProcessViewWindow::~ezEditorProcessViewWindow()
 {
   if (m_hWnd.type == ezWindowHandle::Type::XCB)
   {
+    ezGALDevice::GetDefaultDevice()->WaitIdle();
+
     ezWindowBase::Destroy(m_hWnd.xcbWindow.m_Window);
 
     ezStringBuilder sTemp;

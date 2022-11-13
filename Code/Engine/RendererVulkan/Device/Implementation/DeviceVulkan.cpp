@@ -634,8 +634,6 @@ ezResult ezGALDeviceVulkan::ShutdownPlatform()
 
   WaitIdlePlatform();
 
-  
-
   m_pDefaultPass = nullptr;
   m_pPipelineBarrier = nullptr;
   m_pCommandBufferPool->DeInitialize();
@@ -1023,6 +1021,8 @@ void ezGALDeviceVulkan::DestroyTexturePlatform(ezGALTexture* pTexture)
 {
   ezGALTextureVulkan* pVulkanTexture = static_cast<ezGALTextureVulkan*>(pTexture);
   GetCurrentPipelineBarrier().TextureDestroyed(pVulkanTexture);
+m_pInitContext->TextureDestroyed(pVulkanTexture);
+
   pVulkanTexture->DeInitPlatform(this).IgnoreResult();
   EZ_DELETE(&m_Allocator, pVulkanTexture);
 }
@@ -1285,6 +1285,7 @@ void ezGALDeviceVulkan::FillCapabilitiesPlatform()
 void ezGALDeviceVulkan::WaitIdlePlatform()
 {
   m_device.waitIdle();
+  DestroyDeadObjects();
   for (ezUInt32 i = 0; i < EZ_ARRAY_SIZE(m_PerFrameData); ++i)
   {
     // First, we wait for all fences for all submit calls. This is necessary to make sure no resources of the frame are still in use by the GPU.
