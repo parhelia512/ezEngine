@@ -92,13 +92,31 @@ void ezEngineProcessViewContext::HandleWindowUpdate(ezWindowHandle hWnd, ezUInt1
 
     const ezSizeU32 wndSize = pWindowPlugin->GetWindow()->GetClientAreaSize();
 
+    EZ_ASSERT_DEV(pWindowPlugin->GetWindow()->GetNativeWindowHandle() == hWnd, "");
+
     if (wndSize.width == uiWidth && wndSize.height == uiHeight)
       return;
 
-    ezActorManager::GetSingleton()->DestroyActor(m_pEditorWndActor);
-    m_pEditorWndActor = nullptr;
+    //ezActorManager::GetSingleton()->DestroyActor(m_pEditorWndActor);
+    //m_pEditorWndActor = nullptr;
+     if (static_cast<ezEditorProcessViewWindow*>(pWindowPlugin->GetWindow())->UpdateWindow(hWnd, uiWidth, uiHeight).Failed())
+    {
+      ezLog::Error("Failed to update Editor Process View Window");
+      return;
+    }
+
+    //auto* pOutput = static_cast<ezWindowOutputTargetGAL*>(pWindowPlugin->GetOutputTarget());
+    //pOutput->CreateSwapchain(pOutput->m_currentDesc);
+
+
+
+    //SetupRenderTarget(pOutput->m_hSwapChain, nullptr, uiWidth, uiHeight);
+
+
+    return;
   }
 
+  // Create
   {
     ezUniquePtr<ezActor> pActor = EZ_DEFAULT_NEW(ezActor, "EditorView", this);
     m_pEditorWndActor = pActor.Borrow();
@@ -120,7 +138,9 @@ void ezEngineProcessViewContext::HandleWindowUpdate(ezWindowHandle hWnd, ezUInt1
 
     // create output target
     {
-      ezUniquePtr<ezWindowOutputTargetGAL> pOutput = EZ_DEFAULT_NEW(ezWindowOutputTargetGAL);
+      ezUniquePtr<ezWindowOutputTargetGAL> pOutput = EZ_DEFAULT_NEW(ezWindowOutputTargetGAL, [this](ezGALSwapChainHandle hSwapChain, ezSizeU32 size) {
+        OnSwapChainChanged(hSwapChain, size);
+      });
 
       ezGALWindowSwapChainCreationDescription desc;
       desc.m_pWindow = pWindowPlugin->m_pWindow.Borrow();
@@ -144,6 +164,21 @@ void ezEngineProcessViewContext::HandleWindowUpdate(ezWindowHandle hWnd, ezUInt1
     pActor->AddPlugin(std::move(pWindowPlugin));
     ezActorManager::GetSingleton()->AddActor(std::move(pActor));
   }
+}
+
+void ezEngineProcessViewContext::OnSwapChainChanged(ezGALSwapChainHandle hSwapChain, ezSizeU32 size)
+{
+  ezView* pView = nullptr;
+  if (ezRenderWorld::TryGetView(m_hView, pView))
+  {
+    pView->SetViewport(ezRectFloat(0.0f, 0.0f, (float)size.width, (float)size.height));
+  }
+  //ezActorPluginWindow* pWindowPlugin = m_pEditorWndActor->GetPlugin<ezActorPluginWindow>();
+  //auto* pWindow = static_cast<ezEditorProcessViewWindow*>(pWindowPlugin->GetWindow());
+ /* if (pWindow->UpdateWindow(pWindow->GetNativeWindowHandle(), size.width, size.height).Failed())
+  {
+    ezLog::Error("Failed to update Editor Process View Window");
+  }*/
 }
 
 void ezEngineProcessViewContext::SetupRenderTarget(ezGALSwapChainHandle hSwapChain, const ezGALRenderTargets* renderTargets, ezUInt16 uiWidth, ezUInt16 uiHeight)

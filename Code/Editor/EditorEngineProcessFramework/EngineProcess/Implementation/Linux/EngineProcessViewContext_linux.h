@@ -7,13 +7,12 @@ ezEditorProcessViewWindow::~ezEditorProcessViewWindow()
   {
     ezGALDevice::GetDefaultDevice()->WaitIdle();
 
-    ezWindowBase::Destroy(m_hWnd.xcbWindow.m_Window);
-
     ezStringBuilder sTemp;
     const ezDateTime dt = ezTimestamp::CurrentTimestamp();
     sTemp.AppendFormat("Window '{7}, Connection: {8}' Destroyed: {0}-{1}-{2}_{3}-{4}-{5}-{6}", dt.GetYear(), ezArgU(dt.GetMonth(), 2, true), ezArgU(dt.GetDay(), 2, true), ezArgU(dt.GetHour(), 2, true), ezArgU(dt.GetMinute(), 2, true), ezArgU(dt.GetSecond(), 2, true), ezArgU(dt.GetMicroseconds() / 1000, 3, true), m_hWnd.xcbWindow.m_Window, (void*)m_hWnd.xcbWindow.m_pConnection);
     ezLog::Warning("{}", sTemp);
 
+    EZ_ASSERT_DEV(m_iReferenceCount == 0, "The window is still being referenced, probably by a swapchain. Make sure to destroy all swapchains and call ezGALDevice::WaitIdle before destroying a window.");
     xcb_disconnect(m_hWnd.xcbWindow.m_pConnection);
     m_hWnd.xcbWindow.m_pConnection = nullptr;
     m_hWnd.type = ezWindowHandle::Type::Invalid;
@@ -44,7 +43,6 @@ ezResult ezEditorProcessViewWindow::UpdateWindow(ezWindowHandle parentWindow, ez
     }
 
     m_hWnd.xcbWindow.m_Window = parentWindow.xcbWindow.m_Window;
-    ezWindowBase::Create(m_hWnd.xcbWindow.m_Window);
 
     ezStringBuilder sTemp;
     const ezDateTime dt = ezTimestamp::CurrentTimestamp();
@@ -55,9 +53,7 @@ ezResult ezEditorProcessViewWindow::UpdateWindow(ezWindowHandle parentWindow, ez
   m_uiWidth = uiWidth;
   m_uiHeight = uiHeight;
   EZ_ASSERT_DEV(parentWindow.type == ezWindowHandle::Type::XCB && parentWindow.xcbWindow.m_Window != 0, "Invalid handle passed");
-  EZ_ASSERT_DEV(m_hWnd.xcbWindow.m_Window == parentWindow.xcbWindow.m_Window, "");
-  m_hWnd.xcbWindow.m_Window = parentWindow.xcbWindow.m_Window;
-
+  EZ_ASSERT_DEV(m_hWnd.xcbWindow.m_Window == parentWindow.xcbWindow.m_Window, "Remote window handle should never change. Window must be destroyed and recreated.");
 
   return EZ_SUCCESS;
 }

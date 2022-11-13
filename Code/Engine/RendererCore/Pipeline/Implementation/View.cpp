@@ -133,6 +133,7 @@ void ezView::SetViewport(const ezRectFloat& viewport)
   m_Data.m_ViewPortRect = viewport;
 
   UpdateViewData(ezRenderWorld::GetDataIndexForExtraction());
+  ezRenderWorld::AddRenderPipelineToRebuild(m_pRenderPipeline, GetHandle());
 }
 
 void ezView::ExtractData()

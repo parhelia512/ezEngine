@@ -72,12 +72,30 @@ ezQtEngineViewWidget::~ezQtEngineViewWidget()
 
   ezStringBuilder sTemp;
   const ezDateTime dt = ezTimestamp::CurrentTimestamp();
-  sTemp.AppendFormat("Window '{7}' Created: {0}-{1}-{2}_{3}-{4}-{5}-{6}", dt.GetYear(), ezArgU(dt.GetMonth(), 2, true), ezArgU(dt.GetDay(), 2, true), ezArgU(dt.GetHour(), 2, true), ezArgU(dt.GetMinute(), 2, true), ezArgU(dt.GetSecond(), 2, true), ezArgU(dt.GetMicroseconds() / 1000, 3, true), winId());
+  sTemp.AppendFormat("Window '{7}' destroyed: {0}-{1}-{2}_{3}-{4}-{5}-{6}", dt.GetYear(), ezArgU(dt.GetMonth(), 2, true), ezArgU(dt.GetDay(), 2, true), ezArgU(dt.GetHour(), 2, true), ezArgU(dt.GetMinute(), 2, true), ezArgU(dt.GetSecond(), 2, true), ezArgU(dt.GetMicroseconds() / 1000, 3, true), winId());
   ezLog::Warning("{}", sTemp);
+
+  ezTime startTime = ezTime::Now();
 
   ezViewDestroyedMsgToEngine msg;
   msg.m_uiViewID = GetViewID();
   m_pDocumentWindow->GetDocument()->SendMessageToEngine(&msg);
+
+  // Wait for engine process response
+  auto callback = [&](ezProcessMessage* pMsg) -> bool {
+    auto pResponse = static_cast<ezViewDestroyedResponseMsgToEditor*>(pMsg);
+    EZ_ASSERT_DEV(pResponse->m_DocumentGuid == m_pDocumentWindow->GetDocument()->GetGuid() && pResponse->m_uiViewID == msg.m_uiViewID, "Response doesn't match this window. There shouls ever only be one ezViewDestroyedMsgToEngine / response in flight.");
+    return true;
+  };
+  ezProcessCommunicationChannel::WaitForMessageCallback cb = callback;
+
+  if (ezEditorEngineProcessConnection::GetSingleton()->WaitForMessage(ezGetStaticRTTI<ezViewDestroyedResponseMsgToEditor>(), ezTime::Seconds(5), &cb).Failed())
+  {
+    ezLog::Error("Timeout while waiting for engine process to create profiling capture. Captures will not be merged.");
+  }
+  ezTime endTime = ezTime::Now();
+  ezLog::Warning("Engine detroyed View in: {} ms", (endTime - startTime).GetMilliseconds());
+
   m_pDocumentWindow->RemoveViewWidget(this);
 }
 

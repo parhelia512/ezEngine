@@ -212,6 +212,7 @@ ezWindow::~ezWindow()
   {
     Destroy().IgnoreResult();
   }
+  EZ_ASSERT_DEV(m_iReferenceCount == 0, "The window is still being referenced, probably by a swapchain. Make sure to destroy all swapchains and call ezGALDevice::WaitIdle before destroying a window.");
 }
 
 #if EZ_ENABLED(EZ_PLATFORM_WINDOWS)
@@ -226,40 +227,3 @@ ezUInt8 ezWindow::GetNextUnusedWindowNumber()
 
 EZ_STATICLINK_FILE(Core, Core_System_Implementation_Window);
 
-void ezWindowBase::Create(ezUInt32 hWindow)
-{
-  EZ_LOCK(s_lock);
-
-  EZ_ASSERT_DEV(!s_windowMap.Contains(hWindow), "");
-  s_windowMap.Insert(hWindow, 0);
-}
-
-void ezWindowBase::IncRef(ezUInt32 hWindow)
-{
-  EZ_LOCK(s_lock);
-  auto it = s_windowMap.Find(hWindow);
-  EZ_ASSERT_DEV(it.IsValid(), "");
-  ++it.Value();
-
-}
-
-void ezWindowBase::DecRef(ezUInt32 hWindow)
-{
-  EZ_LOCK(s_lock);
-
-  auto it = s_windowMap.Find(hWindow);
-  EZ_ASSERT_DEV(it.IsValid(), "");
-  --it.Value();
-}
-
-void ezWindowBase::Destroy(ezUInt32 hWindow)
-{
-  EZ_LOCK(s_lock);
-  auto it = s_windowMap.Find(hWindow);
-  EZ_ASSERT_DEV(it.IsValid(), "");
-  EZ_ASSERT_DEV(it.Value() == 0, "");
-  s_windowMap.Remove(hWindow);
-}
-
-ezMutex ezWindowBase::s_lock;
-ezMap<ezUInt32, ezInt32> ezWindowBase::s_windowMap;
