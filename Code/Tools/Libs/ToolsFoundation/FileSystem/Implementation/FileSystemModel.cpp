@@ -46,6 +46,15 @@ EZ_BEGIN_SUBSYSTEM_DECLARATION(ToolsFoundation, FileSystemModel)
 EZ_END_SUBSYSTEM_DECLARATION;
 // clang-format on
 
+// Comment in to get verbose output on the function of the file system watcher
+#  define DEBUG_FILE_SYSTEM_WATCHER
+
+#  ifdef DEBUG_FILE_SYSTEM_WATCHER
+#    define DEBUG_LOG(...) ezLog::Dev(__VA_ARGS__)
+#  else
+#    define DEBUG_LOG(...)
+#  endif
+
 namespace
 {
   thread_local ezHybridArray<ezFileChangedEvent, 2, ezStaticAllocatorWrapper> g_PostponedFiles;
@@ -693,6 +702,7 @@ void ezFileSystemModel::CheckFolder(ezStringView sAbsolutePath)
 
 void ezFileSystemModel::OnAssetWatcherEvent(const ezFileSystemWatcherEvent& e)
 {
+  DEBUG_LOG("OnAssetWatcherEvent {}, {}", (int)e.m_Type, e.m_sPath);
   switch (e.m_Type)
   {
     case ezFileSystemWatcherEvent::Type::FileAdded:

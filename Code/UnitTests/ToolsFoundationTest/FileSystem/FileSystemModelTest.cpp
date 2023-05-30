@@ -165,6 +165,7 @@ EZ_CREATE_SIMPLE_TEST(FileSystem, FileSystemModel)
 
   EZ_TEST_BLOCK(ezTestBlock::Enabled, "Add file")
   {
+    EZ_LOG_BLOCK("Add file");
     ezStringBuilder sFilePath(sOutputFolder);
     sFilePath.AppendPath("rootFile.txt");
 
@@ -191,6 +192,7 @@ EZ_CREATE_SIMPLE_TEST(FileSystem, FileSystemModel)
 
   EZ_TEST_BLOCK(ezTestBlock::Enabled, "modify file")
   {
+    EZ_LOG_BLOCK("modify file");
     ezStringBuilder sFilePath(sOutputFolder);
     sFilePath.AppendPath("rootFile.txt");
 
@@ -223,6 +225,7 @@ EZ_CREATE_SIMPLE_TEST(FileSystem, FileSystemModel)
 
   EZ_TEST_BLOCK(ezTestBlock::Enabled, "rename file")
   {
+    EZ_LOG_BLOCK("rename file");
     ezStringBuilder sFilePathOld(sOutputFolder);
     sFilePathOld.AppendPath("rootFile.txt");
 
