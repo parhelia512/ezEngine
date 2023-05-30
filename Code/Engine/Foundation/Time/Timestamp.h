@@ -195,6 +195,7 @@ private:
 };
 
 EZ_FOUNDATION_DLL ezStringView BuildString(char* szTmp, ezUInt32 uiLength, const ezDateTime& arg);
+EZ_FOUNDATION_DLL ezStringView BuildString(char* szTmp, ezUInt32 uiLength, const ezTimestamp& arg);
 
 struct ezArgDateTime
 {

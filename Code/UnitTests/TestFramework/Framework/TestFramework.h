@@ -334,6 +334,7 @@ struct ezTestBlock
 /// Second parameter just gives it a name for better error reporting.
 /// Also skipped tests are highlighted in the output, such that people can quickly see when a test is currently deactivated.
 #define EZ_TEST_BLOCK(enable, name)                                                  \
+  ezTestFramework::Output(ezTestOutput::Details, "***TEST BLOCK '%s'", name); \
   ezTestFramework::s_szTestBlockName = name;                                         \
   if (enable == ezTestBlock::Disabled)                                               \
   {                                                                                  \

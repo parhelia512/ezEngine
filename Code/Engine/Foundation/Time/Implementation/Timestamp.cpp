@@ -233,6 +233,17 @@ ezStringView BuildString(char* szTmp, ezUInt32 uiLength, const ezArgDateTime& ar
   return szTmp;
 }
 
+
+ezStringView BuildString(char* szTmp, ezUInt32 uiLength, const ezTimestamp& arg)
+{
+  if (!arg.IsValid())
+  {
+    return "<INVALID>"_ezsv;
+  }
+  else
+    return BuildString(szTmp, uiLength, ezDateTime(arg));
+}
+
 // Include inline file
 #if EZ_ENABLED(EZ_PLATFORM_WINDOWS)
 #  include <Foundation/Time/Implementation/Win/Timestamp_win.h>

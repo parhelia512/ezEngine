@@ -814,6 +814,7 @@ ezFileStatus ezFileSystemModel::HandleSingleFile(const ezString& sAbsolutePath, 
       EZ_LOCK(m_FilesMutex);
       auto it = m_ReferencedFiles.FindOrAdd(sAbsolutePath, &bExisted);
       ezFileStatus& value = it.Value();
+      DEBUG_LOG("Check {} | {} != {}", sAbsolutePath, value.m_LastModified, FileStat.m_LastModificationTime);
       bFileChanged = !value.m_LastModified.Compare(FileStat.m_LastModificationTime, ezTimestamp::CompareMode::Identical);
       if (bFileChanged)
       {
@@ -831,10 +832,12 @@ ezFileStatus ezFileSystemModel::HandleSingleFile(const ezString& sAbsolutePath, 
 
     if (!bExisted)
     {
+      DEBUG_LOG("FileAdded {}", sAbsolutePath);
       FireFileChangedEvent(sAbsolutePath, status, ezFileChangedEvent::Type::FileAdded);
     }
     else if (bFileChanged)
     {
+      DEBUG_LOG("FileChanged {}", sAbsolutePath);
       FireFileChangedEvent(sAbsolutePath, status, ezFileChangedEvent::Type::FileChanged);
     }
     return status;
