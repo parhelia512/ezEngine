@@ -689,7 +689,7 @@ static void LogWriter(const ezLoggingEventData& e)
     case ezLogMsgType::DevMsg:
     case ezLogMsgType::DebugMsg:
     {
-      if (e.m_sTag.IsEqual_NoCase("test"))
+      //if (e.m_sTag.IsEqual_NoCase("test"))
         ezTestFramework::Output(ezTestOutput::Details, sText.GetData());
     }
     break;

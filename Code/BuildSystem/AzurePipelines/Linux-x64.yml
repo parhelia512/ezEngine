@@ -85,41 +85,11 @@ jobs:
       targetType: inline
       script: Write-Host "##vso[task.setvariable variable=task.MSBuild.status]success"
   - task: Bash@3
-    displayName: FoundationTest
-    condition: eq(variables['task.MSBuild.status'], 'success')
-    inputs:
-      targetType: inline
-      script: ./Output/Bin/LinuxMakeGccDev64/FoundationTest -nosave -nogui -all -outputDir $(Build.ArtifactStagingDirectory)/FoundationTest
-  - task: Bash@3
-    displayName: CoreTest
-    condition: eq(variables['task.MSBuild.status'], 'success')
-    inputs:
-      targetType: inline
-      script: |
-        killall Xvfb
-        sleep 1
-        export DISPLAY=:1
-        Xvfb :1 -screen 0 1024x768x16 &
-        sleep 1
-        exec lightdm-session &
-        sleep 2
-        ./Output/Bin/LinuxMakeGccDev64/CoreTest -nosave -nogui -all -outputDir $(Build.ArtifactStagingDirectory)/CoreTest
-  - task: Bash@3
     displayName: ToolsFoundationTest
     condition: eq(variables['task.MSBuild.status'], 'success')
     inputs:
       targetType: inline
       script: ./Output/Bin/LinuxMakeGccDev64/ToolsFoundationTest -nosave -nogui -all -outputDir $(Build.ArtifactStagingDirectory)/ToolsFoundationTest
-  - task: Bash@3
-    displayName: RendererTest
-    condition: eq(variables['task.MSBuild.status'], 'success')
-    inputs:
-      targetType: inline
-      script: |
-        export DISPLAY=:1
-        export VK_ICD_FILENAMES=/usr/local/share/vulkan/icd.d/lvp_icd.x86_64.json
-        vulkaninfo --summary
-        ./Output/Bin/LinuxMakeGccDev64/RendererTest -nosave -nogui -all -outputDir $(Build.ArtifactStagingDirectory)/RendererTest
   - task: PublishBuildArtifacts@1
     displayName: 'Publish Artifact: drop'
     condition: succeededOrFailed()

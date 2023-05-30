@@ -19,10 +19,10 @@ EZ_FOUNDATION_INTERNAL_HEADER
 #  endif
 
 // Comment in to get verbose output on the function of the directory watcher
-//#  define DEBUG_FILE_WATCHER
+#  define DEBUG_FILE_WATCHER
 
 #  ifdef DEBUG_FILE_WATCHER
-#    define DEBUG_LOG(...) ezLog::Debug(__VA_ARGS__)
+#    define DEBUG_LOG(...) ezLog::Dev(__VA_ARGS__)
 #  else
 #    define DEBUG_LOG(...)
 #  endif
