@@ -23,6 +23,25 @@ namespace
     FileOut.Close();
     return EZ_SUCCESS;
   }
+
+  struct ScopedWait
+  {
+    ScopedWait()
+    {
+      m_waitEnd = ezTime::Now() + ezTime::Seconds(1);
+    }
+    ~ScopedWait()
+    {
+      while (m_waitEnd > ezTime::Now())
+      {
+        ezThreadUtils::Sleep(ezTime::Milliseconds(10));
+      }
+    }
+
+    ezTime m_waitEnd;
+  };
+#  define SCOPED_WAIT ScopedWait EZ_CONCAT(_scopedwait_, EZ_SOURCE_LINE)
+
 } // namespace
 
 EZ_CREATE_SIMPLE_TEST(FileSystem, FileSystemModel)
@@ -170,7 +189,7 @@ EZ_CREATE_SIMPLE_TEST(FileSystem, FileSystemModel)
     sFilePath.AppendPath("rootFile.txt");
 
     EZ_TEST_RESULT(eztCreateFile(sFilePath));
-
+    SCOPED_WAIT;
     for (ezUInt32 i = 0; i < WAIT_LOOPS; i++)
     {
       ezFileSystemModel::GetSingleton()->MainThreadTick();
@@ -203,7 +222,6 @@ EZ_CREATE_SIMPLE_TEST(FileSystem, FileSystemModel)
       EZ_TEST_RESULT(FileOut.Flush());
       FileOut.Close();
     }
-
     for (ezUInt32 i = 0; i < WAIT_LOOPS; i++)
     {
       ezFileSystemModel::GetSingleton()->MainThreadTick();
@@ -233,7 +251,6 @@ EZ_CREATE_SIMPLE_TEST(FileSystem, FileSystemModel)
     sFilePathNew.AppendPath("rootFile2.txt");
 
     EZ_TEST_RESULT(ezOSFile::MoveFileOrDirectory(sFilePathOld, sFilePathNew));
-
     for (ezUInt32 i = 0; i < WAIT_LOOPS; i++)
     {
       ezFileSystemModel::GetSingleton()->MainThreadTick();
@@ -261,7 +278,6 @@ EZ_CREATE_SIMPLE_TEST(FileSystem, FileSystemModel)
     sFolderPath.AppendPath("Folder1");
 
     EZ_TEST_RESULT(ezFileSystem::CreateDirectoryStructure(sFolderPath));
-
     for (ezUInt32 i = 0; i < WAIT_LOOPS; i++)
     {
       ezFileSystemModel::GetSingleton()->MainThreadTick();
@@ -290,7 +306,6 @@ EZ_CREATE_SIMPLE_TEST(FileSystem, FileSystemModel)
     sFilePathNew.AppendPath("Folder1", "rootFile2.txt");
 
     EZ_TEST_RESULT(ezOSFile::MoveFileOrDirectory(sFilePathOld, sFilePathNew));
-
     for (ezUInt32 i = 0; i < WAIT_LOOPS; i++)
     {
       ezFileSystemModel::GetSingleton()->MainThreadTick();
@@ -327,7 +342,6 @@ EZ_CREATE_SIMPLE_TEST(FileSystem, FileSystemModel)
     sFilePathNew.AppendPath("Folder2", "rootFile2.txt");
 
     EZ_TEST_RESULT(ezOSFile::MoveFileOrDirectory(sFolderPathOld, sFolderPathNew));
-
     for (ezUInt32 i = 0; i < WAIT_LOOPS; i++)
     {
       ezFileSystemModel::GetSingleton()->MainThreadTick();
