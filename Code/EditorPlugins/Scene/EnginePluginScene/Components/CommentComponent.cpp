@@ -24,12 +24,12 @@ EZ_END_DYNAMIC_REFLECTED_TYPE;
 ezCommentComponent::ezCommentComponent() = default;
 ezCommentComponent::~ezCommentComponent() = default;
 
-void ezCommentComponent::SetComment(const char* szText)
+void ezCommentComponent::SetComment(ezStringView sText)
 {
-  m_sComment.Assign(szText);
+  m_sComment.Assign(sText);
 }
 
-const char* ezCommentComponent::GetComment() const
+ezStringView ezCommentComponent::GetComment() const
 {
   return m_sComment.GetString();
 }

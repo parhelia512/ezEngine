@@ -21,8 +21,8 @@ public:
   ezCommentComponent();
   ~ezCommentComponent();
 
-  void SetComment(const char* szText);
-  const char* GetComment() const;
+  void SetComment(ezStringView sText);
+  ezStringView GetComment() const;
 
 private:
   ezHashedString m_sComment;
