@@ -11,7 +11,7 @@ o
 		s %AssetType{"Surface"}
 		VarArray %Dependencies{}
 		Uuid %DocumentID{u4{2629173459460707971,5175946381366488332}}
-		u4 %Hash{4117316822133346271}
+		u4 %Hash{8082486959071979186}
 		VarArray %MetaInfo{}
 		VarArray %Outputs{}
 		VarArray %PackageDeps
@@ -36,6 +36,7 @@ o
 	{
 		s %BaseSurface{"{ 4d32563e-9422-4f7d-ad7a-bb8dba546716 }"}
 		f %DynamicFriction{0xCDCCCC3D}
+		i1 %GroundType{3}
 		VarArray %Interactions{}
 		s %OnCollideInteraction{""}
 		f %Restitution{0xCDCCCC3D}
