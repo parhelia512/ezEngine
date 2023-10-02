@@ -435,6 +435,7 @@ namespace
   {
     EZ_FORCE_INLINE static void impl(ezVariant* pVector, ezUInt32 uiComponent, double fValue)
     {
+      EZ_ASSERT_DEBUG(uiComponent < 2, "uiComponent out of range");
       auto vec = pVector->Get<ezVec2Template<T>>();
       switch (uiComponent)
       {
@@ -454,6 +455,7 @@ namespace
   {
     EZ_FORCE_INLINE static void impl(ezVariant* pVector, ezUInt32 uiComponent, double fValue)
     {
+      EZ_ASSERT_DEBUG(uiComponent < 3, "uiComponent out of range");
       auto vec = pVector->Get<ezVec3Template<T>>();
       switch (uiComponent)
       {
@@ -476,6 +478,7 @@ namespace
   {
     EZ_FORCE_INLINE static void impl(ezVariant* pVector, ezUInt32 uiComponent, double fValue)
     {
+      EZ_ASSERT_DEBUG(uiComponent < 4, "uiComponent out of range");
       auto vec = pVector->Get<ezVec4Template<T>>();
       switch (uiComponent)
       {
@@ -519,6 +522,7 @@ namespace
   {
     EZ_FORCE_INLINE static void impl(const ezVariant* pVector, ezUInt32 uiComponent, double& ref_fValue)
     {
+      EZ_ASSERT_DEBUG(uiComponent < 2, "uiComponent out of range");
       const auto& vec = pVector->Get<ezVec2Template<T>>();
       switch (uiComponent)
       {
@@ -537,6 +541,7 @@ namespace
   {
     EZ_FORCE_INLINE static void impl(const ezVariant* pVector, ezUInt32 uiComponent, double& ref_fValue)
     {
+      EZ_ASSERT_DEBUG(uiComponent < 3, "uiComponent out of range");
       const auto& vec = pVector->Get<ezVec3Template<T>>();
       switch (uiComponent)
       {
@@ -558,6 +563,7 @@ namespace
   {
     EZ_FORCE_INLINE static void impl(const ezVariant* pVector, ezUInt32 uiComponent, double& ref_fValue)
     {
+      EZ_ASSERT_DEBUG(uiComponent < 4, "uiComponent out of range");
       const auto& vec = pVector->Get<ezVec4Template<T>>();
       switch (uiComponent)
       {

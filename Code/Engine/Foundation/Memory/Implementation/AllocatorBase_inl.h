@@ -65,6 +65,7 @@ namespace ezInternal
   {
     if (pPtr != nullptr)
     {
+      EZ_ASSERT_DEBUG(pAllocator != nullptr, "Delete must be given a valid allocator");
       ezMemoryUtils::Destruct(pPtr, 1);
       pAllocator->Deallocate(pPtr);
     }

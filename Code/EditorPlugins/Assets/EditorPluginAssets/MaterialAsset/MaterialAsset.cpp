@@ -1042,6 +1042,7 @@ ezStatus ezMaterialAssetDocument::WriteMaterialAsset(ezStreamWriter& inout_strea
 
       for (auto pProp : Permutations)
       {
+        EZ_ASSERT_DEBUG(pObject != nullptr, "Need object to write out permutation");
         const char* szName = pProp->GetPropertyName();
         if (pProp->GetSpecificType()->GetVariantType() == ezVariantType::Bool)
         {
@@ -1068,6 +1069,7 @@ ezStatus ezMaterialAssetDocument::WriteMaterialAsset(ezStreamWriter& inout_strea
 
       for (auto pProp : Textures2D)
       {
+        EZ_ASSERT_DEBUG(pObject != nullptr, "Need object to write out texture");
         const char* szName = pProp->GetPropertyName();
         sValue = pObject->GetTypeAccessor().GetValue(szName).ConvertTo<ezString>();
 
@@ -1083,6 +1085,7 @@ ezStatus ezMaterialAssetDocument::WriteMaterialAsset(ezStreamWriter& inout_strea
 
       for (auto pProp : TexturesCube)
       {
+        EZ_ASSERT_DEBUG(pObject != nullptr, "Need object to write out texture cube");
         const char* szName = pProp->GetPropertyName();
         sValue = pObject->GetTypeAccessor().GetValue(szName).ConvertTo<ezString>();
 
@@ -1098,6 +1101,7 @@ ezStatus ezMaterialAssetDocument::WriteMaterialAsset(ezStreamWriter& inout_strea
 
       for (auto pProp : Constants)
       {
+        EZ_ASSERT_DEBUG(pObject != nullptr, "Need object to write out constant");
         const char* szName = pProp->GetPropertyName();
         ezVariant value = pObject->GetTypeAccessor().GetValue(szName);
 
@@ -1130,6 +1134,7 @@ ezStatus ezMaterialAssetDocument::WriteMaterialAsset(ezStreamWriter& inout_strea
         // embed 2D texture data
         for (auto prop : Textures2D)
         {
+          EZ_ASSERT_DEBUG(pObject != nullptr, "Need object to write out texture2d");
           const char* szName = prop->GetPropertyName();
           sValue = pObject->GetTypeAccessor().GetValue(szName).ConvertTo<ezString>();
 

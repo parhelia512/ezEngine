@@ -1444,7 +1444,7 @@ void ezGALDevice::DestroyDeadObjects()
         ezGALShaderHandle hShader(ezGAL::ez18_14Id(deadObject.m_uiHandle));
         ezGALShader* pShader = nullptr;
 
-        m_Shaders.Remove(hShader, &pShader);
+        EZ_VERIFY(m_Shaders.Remove(hShader, &pShader), "");
 
         DestroyShaderPlatform(pShader);
 
@@ -1455,7 +1455,7 @@ void ezGALDevice::DestroyDeadObjects()
         ezGALBufferHandle hBuffer(ezGAL::ez18_14Id(deadObject.m_uiHandle));
         ezGALBuffer* pBuffer = nullptr;
 
-        m_Buffers.Remove(hBuffer, &pBuffer);
+        EZ_VERIFY(m_Buffers.Remove(hBuffer, &pBuffer), "");
 
         DestroyViews(pBuffer);
         DestroyBufferPlatform(pBuffer);
@@ -1487,7 +1487,7 @@ void ezGALDevice::DestroyDeadObjects()
         ezGALResourceViewHandle hResourceView(ezGAL::ez18_14Id(deadObject.m_uiHandle));
         ezGALResourceView* pResourceView = nullptr;
 
-        m_ResourceViews.Remove(hResourceView, &pResourceView);
+        EZ_VERIFY(m_ResourceViews.Remove(hResourceView, &pResourceView), "");
 
         ezGALResourceBase* pResource = pResourceView->m_pResource;
         EZ_ASSERT_DEBUG(pResource != nullptr, "");
@@ -1504,7 +1504,7 @@ void ezGALDevice::DestroyDeadObjects()
         ezGALRenderTargetViewHandle hRenderTargetView(ezGAL::ez18_14Id(deadObject.m_uiHandle));
         ezGALRenderTargetView* pRenderTargetView = nullptr;
 
-        m_RenderTargetViews.Remove(hRenderTargetView, &pRenderTargetView);
+        EZ_VERIFY(m_RenderTargetViews.Remove(hRenderTargetView, &pRenderTargetView), "");
 
         ezGALTexture* pTexture = pRenderTargetView->m_pTexture;
         EZ_ASSERT_DEBUG(pTexture != nullptr, "");
@@ -1520,7 +1520,7 @@ void ezGALDevice::DestroyDeadObjects()
         ezGALUnorderedAccessViewHandle hUnorderedAccessViewHandle(ezGAL::ez18_14Id(deadObject.m_uiHandle));
         ezGALUnorderedAccessView* pUnorderedAccesssView = nullptr;
 
-        m_UnorderedAccessViews.Remove(hUnorderedAccessViewHandle, &pUnorderedAccesssView);
+        EZ_VERIFY(m_UnorderedAccessViews.Remove(hUnorderedAccessViewHandle, &pUnorderedAccesssView), "");
 
         ezGALResourceBase* pResource = pUnorderedAccesssView->m_pResource;
         EZ_ASSERT_DEBUG(pResource != nullptr, "");
@@ -1537,7 +1537,7 @@ void ezGALDevice::DestroyDeadObjects()
         ezGALSwapChainHandle hSwapChain(ezGAL::ez16_16Id(deadObject.m_uiHandle));
         ezGALSwapChain* pSwapChain = nullptr;
 
-        m_SwapChains.Remove(hSwapChain, &pSwapChain);
+        EZ_VERIFY(m_SwapChains.Remove(hSwapChain, &pSwapChain), "");
 
         if (pSwapChain != nullptr)
         {
@@ -1552,7 +1552,7 @@ void ezGALDevice::DestroyDeadObjects()
         ezGALQueryHandle hQuery(ezGAL::ez20_12Id(deadObject.m_uiHandle));
         ezGALQuery* pQuery = nullptr;
 
-        m_Queries.Remove(hQuery, &pQuery);
+        EZ_VERIFY(m_Queries.Remove(hQuery, &pQuery), "");
 
         DestroyQueryPlatform(pQuery);
 
