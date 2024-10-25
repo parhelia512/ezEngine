@@ -2,7 +2,7 @@
 
 /// \file
 
-#define EZ_PLATFORM_NAME "Windows - Desktop"
+#define EZ_PLATFORM_NAME "Windows"
 
 #undef EZ_PLATFORM_WINDOWS
 #undef EZ_PLATFORM_WINDOWS_UWP
@@ -69,6 +69,10 @@
 /// Whether starting other processes is supported.
 #undef EZ_SUPPORTS_PROCESSES
 #define EZ_SUPPORTS_PROCESSES EZ_ON
+
+/// Whether inter-process communication via pipes is supported
+#undef EZ_SUPPORTS_IPC
+#define EZ_SUPPORTS_IPC EZ_ON
 
 // SIMD support
 #undef EZ_SIMD_IMPLEMENTATION

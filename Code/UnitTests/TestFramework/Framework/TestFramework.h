@@ -4,8 +4,8 @@
 #include <TestFramework/Framework/SimpleTest.h>
 #include <TestFramework/Framework/TestBaseClass.h>
 #include <TestFramework/Framework/TestResults.h>
-#include <TestFramework/Platform/TestFrameworkEntryPoint.h>
 #include <TestFramework/TestFrameworkDLL.h>
+#include <TestFrameworkEntryPoint_Platform.h>
 
 #include <Foundation/Containers/DynamicArray.h>
 #include <Foundation/Containers/HashTable.h>
@@ -58,6 +58,9 @@ public:
   // Test execution
   void ResetTests();
   ezTestAppRun RunTestExecutionLoop();
+
+  /// \brief Top-level function to run tests, can be overridden by platform specific implementations
+  virtual ezTestAppRun RunTests() { return RunTestExecutionLoop(); }
 
   void StartTests();
   void ExecuteNextTest();

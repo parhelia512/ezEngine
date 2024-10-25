@@ -71,7 +71,7 @@ namespace ezMath
   {
     EZ_ASSERT_DEBUG(value != 0, "FirstBitLow is undefined for 0");
 
-#if EZ_ENABLED(EZ_PLATFORM_WINDOWS)
+#if EZ_ENABLED(EZ_COMPILER_MSVC)
     unsigned long uiIndex = 0;
     _BitScanForward(&uiIndex, value);
     return uiIndex;
@@ -89,7 +89,7 @@ namespace ezMath
 
 #if __castxml__
     return 0;
-#elif EZ_ENABLED(EZ_PLATFORM_WINDOWS)
+#elif EZ_ENABLED(EZ_COMPILER_MSVC)
     unsigned long uiIndex = 0;
 #  if EZ_ENABLED(EZ_PLATFORM_64BIT)
 
@@ -120,7 +120,7 @@ namespace ezMath
   {
     EZ_ASSERT_DEBUG(value != 0, "FirstBitHigh is undefined for 0");
 
-#if EZ_ENABLED(EZ_PLATFORM_WINDOWS)
+#if EZ_ENABLED(EZ_COMPILER_MSVC)
     unsigned long uiIndex = 0;
     _BitScanReverse(&uiIndex, value);
     return uiIndex;
@@ -138,7 +138,7 @@ namespace ezMath
 
 #if __castxml__
     return 0;
-#elif EZ_ENABLED(EZ_PLATFORM_WINDOWS)
+#elif EZ_ENABLED(EZ_COMPILER_MSVC)
     unsigned long uiIndex = 0;
 #  if EZ_ENABLED(EZ_PLATFORM_64BIT)
     _BitScanReverse64(&uiIndex, value);
@@ -529,4 +529,9 @@ EZ_ALWAYS_INLINE float ezMath::WrapFloat(float fValue, float fMinValue, float fM
 {
   const float range = fMaxValue - fMinValue;
   return fMinValue + WrapFloat01((fValue - fMinValue) / range) * range;
+}
+
+EZ_ALWAYS_INLINE constexpr ezUInt64 ezMath::MakeUInt64(ezUInt32 uiHigh32, ezUInt32 uiLow32)
+{
+  return (static_cast<ezUInt64>(uiHigh32) << 32) | static_cast<ezUInt64>(uiLow32);
 }

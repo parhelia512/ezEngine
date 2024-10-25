@@ -28,7 +28,6 @@
 #define EZ_PLATFORM_WINDOWS_DESKTOP EZ_OFF // enabled for desktop apps, together with EZ_PLATFORM_WINDOWS
 #define EZ_PLATFORM_OSX EZ_OFF
 #define EZ_PLATFORM_LINUX EZ_OFF
-#define EZ_PLATFORM_IOS EZ_OFF
 #define EZ_PLATFORM_ANDROID EZ_OFF
 #define EZ_PLATFORM_WEB EZ_OFF
 
@@ -71,6 +70,7 @@
 #define EZ_SUPPORTS_CASE_INSENSITIVE_PATHS EZ_OFF
 #define EZ_SUPPORTS_CRASH_DUMPS EZ_OFF
 #define EZ_SUPPORTS_LONG_PATHS EZ_OFF
+#define EZ_SUPPORTS_IPC EZ_OFF
 
 // Allocators
 #define EZ_ALLOC_GUARD_ALLOCATIONS EZ_OFF
@@ -106,9 +106,6 @@
 
 // Application entry point code injection (undef and redefine in UserConfig.h if needed)
 #define EZ_APPLICATION_ENTRY_POINT_CODE_INJECTION
-
-// Whether 'RuntimeConfigs' files should be searched in the old location
-#define EZ_MIGRATE_RUNTIMECONFIGS EZ_OFF
 
 // Interoperability with other libraries
 #define EZ_INTEROP_STL_STRINGS EZ_OFF

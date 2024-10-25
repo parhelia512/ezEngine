@@ -1,10 +1,11 @@
 #include <Foundation/FoundationPCH.h>
 
 #include <Foundation/Logging/VisualStudioWriter.h>
-#include <Foundation/Strings/StringConversion.h>
 
 #if EZ_ENABLED(EZ_PLATFORM_WINDOWS)
+
 #  include <Foundation/Platform/Win/Utils/IncludeWindows.h>
+#  include <Foundation/Strings/StringConversion.h>
 
 void ezLogWriter::VisualStudio::LogMessageHandler(const ezLoggingEventData& eventData)
 {
@@ -84,6 +85,8 @@ void ezLogWriter::VisualStudio::LogMessageHandler(const ezLoggingEventData& even
 
 #else
 
-void ezLogWriter::VisualStudio::LogMessageHandler(const ezLoggingEventData& eventData) {}
+void ezLogWriter::VisualStudio::LogMessageHandler(const ezLoggingEventData& eventData)
+{
+}
 
 #endif
