@@ -608,3 +608,6 @@ void ezRcAgentComponentManager::Update(const ezWorldModule::UpdateContext& conte
       it->Update();
   }
 }
+
+
+EZ_STATICLINK_FILE(RecastPlugin, RecastPlugin_Components_RecastAgentComponent);

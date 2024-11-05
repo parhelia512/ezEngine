@@ -527,3 +527,6 @@ ezResult ezRecastConfig::Deserialize(ezStreamReader& inout_stream)
 
   return EZ_SUCCESS;
 }
+
+
+EZ_STATICLINK_FILE(RecastPlugin, RecastPlugin_NavMeshBuilder_NavMeshBuilder);

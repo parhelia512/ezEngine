@@ -221,3 +221,6 @@ void PacManComponent::DeserializeComponent(ezWorldReader& stream)
 
   // currently we have nothing to deserialize
 }
+
+
+EZ_STATICLINK_FILE(PacManPlugin, PacManPlugin_Components_PacManComponent);
