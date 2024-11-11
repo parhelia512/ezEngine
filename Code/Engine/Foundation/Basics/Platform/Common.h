@@ -79,6 +79,12 @@ EZ_WARNING_POP()
 /// When dynamic linking is used, this macro has no effect, at all.
 #  define EZ_STATICLINK_PLUGIN(PluginName)
 
+/// \brief A marker that can be placed in CPP files to enforce that the StaticLinkUtil doesn't skip this file.
+///
+/// Needed when a CPP file contains a global variable that's used for registering something (for example an ezEnumerable),
+/// and there is no other indication for the StaticLinkUtil to consider the file.
+#  define EZ_STATICLINK_FORCE
+
 #else
 
 struct ezStaticLinkHelper
@@ -134,6 +140,12 @@ struct EZ_FOUNDATION_DLL ezPluginRegister
 #  define EZ_STATICLINK_PLUGIN(PluginName)                                               \
     extern "C" void EZ_PP_CONCAT(ezReferenceFunction_, PluginName)(bool bReturn = true); \
     ezStaticLinkHelper EZ_PP_CONCAT(ezStaticLinkHelper_, PluginName)(EZ_PP_CONCAT(ezReferenceFunction_, PluginName));
+
+/// \brief A marker that can be placed in CPP files to enforce that the StaticLinkUtil doesn't skip this file.
+///
+/// Needed when a CPP file contains a global variable that's used for registering something (for example an ezEnumerable),
+/// and there is no other indication for the StaticLinkUtil to consider the file.
+#  define EZ_STATICLINK_FORCE
 
 #endif
 
