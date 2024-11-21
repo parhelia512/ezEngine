@@ -695,7 +695,7 @@ void ezQtAssetBrowserWidget::DeleteSelection()
     }
   }
 
-  QMessageBox::StandardButton choice = ezQtUiServices::MessageBoxQuestion(ezFmt("Do you want to delete the selected items?"), QMessageBox::StandardButton::Cancel | QMessageBox::StandardButton::Yes, QMessageBox::StandardButton::Yes);
+  QMessageBox::StandardButton choice = ezQtUiServices::MessageBoxQuestion(ezFmt("Delete the selected file?\n\nThis operation cannot be undone."), QMessageBox::StandardButton::Cancel | QMessageBox::StandardButton::Yes, QMessageBox::StandardButton::Yes);
   if (choice == QMessageBox::StandardButton::Cancel)
     return;
 
@@ -1275,7 +1275,7 @@ void ezQtAssetBrowserWidget::NewAsset()
   ezPathUtils::MakeValidFilename(sTranslateAssetType, ' ', sBaseFileName);
   sNewAsset.AppendFormat("/{}.{}", sBaseFileName, sExtension);
 
-  for (ezUInt32 i = 0; ezOSFile::ExistsFile(sNewAsset); i++)
+  for (ezUInt32 i = 2; ezOSFile::ExistsFile(sNewAsset); i++)
   {
     sNewAsset = qtToEzString(sStartDir);
     sNewAsset.AppendFormat("/{}{}.{}", sBaseFileName, i, sExtension);
@@ -1317,10 +1317,7 @@ void ezQtAssetBrowserWidget::OnFileEditingFinished(const QString& sAbsPath, cons
 {
   ezStringBuilder sOldPath = qtToEzString(sAbsPath);
   ezStringBuilder sNewPath = sOldPath;
-  if (bIsAsset)
-    sNewPath.ChangeFileName(qtToEzString(sNewName));
-  else
-    sNewPath.ChangeFileNameAndExtension(qtToEzString(sNewName));
+  sNewPath.ChangeFileName(qtToEzString(sNewName));
 
   if (sOldPath != sNewPath)
   {
