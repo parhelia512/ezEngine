@@ -4,7 +4,15 @@
 #include <Core/Messages/SetColorMessage.h>
 #include <Core/WorldSerializer/WorldReader.h>
 #include <Core/WorldSerializer/WorldWriter.h>
+#include <Foundation/Configuration/CVar.h>
+#include <RendererCore/Debug/DebugRenderer.h>
 #include <RendererCore/Lights/LightComponent.h>
+
+#if EZ_ENABLED(EZ_COMPILE_FOR_DEVELOPMENT)
+ezCVarBool cvar_RenderingLightingVisScreenSpaceSize("Rendering.Lighting.VisScreenSpaceSize", false, ezCVarFlags::Default, "Enables debug visualization of light screen space size calculation");
+#endif
+
+//////////////////////////////////////////////////////////////////////////
 
 // clang-format off
 EZ_BEGIN_DYNAMIC_REFLECTED_TYPE(ezLightRenderData, 1, ezRTTINoAllocator)
@@ -13,7 +21,13 @@ EZ_END_DYNAMIC_REFLECTED_TYPE;
 
 void ezLightRenderData::FillBatchIdAndSortingKey(float fScreenSpaceSize)
 {
-  m_uiSortingKey = (m_uiShadowDataOffset != ezInvalidIndex) ? 0 : 1;
+  m_uiSortingKey = (m_uiShadowDataOffsetAndFadeOut != 0) ? 0 : 1;
+}
+
+void ezLightRenderData::FillShadowDataOffsetAndFadeOut(ezUInt32 uiDataOffset, float fFadeOut)
+{
+  ezUInt32 uiFadeOut = ezMath::ColorFloatToUnsignedInt<12>(fFadeOut);
+  m_uiShadowDataOffsetAndFadeOut = uiDataOffset | (uiFadeOut << 20);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -268,7 +282,7 @@ float ezLightComponent::CalculateScreenSpaceSize(const ezBoundingSphere& sphere,
   {
     float dist = (sphere.m_vCenter - camera.GetPosition()).GetLength();
     float fHalfHeight = ezMath::Tan(camera.GetFovY(1.0f) * 0.5f) * dist;
-    return ezMath::Pow(sphere.m_fRadius / fHalfHeight, 0.8f); // tweak factor to make transitions more linear.
+    return sphere.m_fRadius / fHalfHeight;
   }
   else
   {
@@ -276,6 +290,40 @@ float ezLightComponent::CalculateScreenSpaceSize(const ezBoundingSphere& sphere,
     return sphere.m_fRadius / fHalfHeight;
   }
 }
+
+float ezLightComponent::CalculateShadowFadeOut(const ezBoundingSphere& sphere, float fShadowFadeOutRange, const ezCamera& camera, float& out_fShadowScreenSize) const
+{
+  if (!m_bCastShadows)
+    return 0.0f;
+
+  ezBoundingSphere shadowBounds = sphere;
+  if (fShadowFadeOutRange > 0.0f)
+  {
+    shadowBounds.m_fRadius = fShadowFadeOutRange;
+  }
+  out_fShadowScreenSize = CalculateScreenSpaceSize(shadowBounds, camera);
+  return ezMath::Saturate(ezMath::Unlerp(0.8f, 1.0f, out_fShadowScreenSize));
+}
+
+#if EZ_ENABLED(EZ_COMPILE_FOR_DEVELOPMENT)
+void ezLightComponent::VisualizeScreenSpaceSize(ezViewHandle hView, const ezBoundingSphere& sphere, float fScreenSize, float fShadowScreenSize, float fShadowFadeOut) const
+{
+  if (cvar_RenderingLightingVisScreenSpaceSize)
+  {
+    ezColor c = ezColorScheme::LightUI(ezColorScheme::Cyan);
+    if (m_bCastShadows)
+    {
+      ezDebugRenderer::Draw3DText(hView,
+        ezFmt("ScreenSize: {}\nShadowScreenSize: {}\n ShadowFadeOut: {}", ezArgF(fScreenSize, 3), ezArgF(fShadowScreenSize, 3), ezArgF(fShadowFadeOut, 3)), sphere.m_vCenter, c);
+    }
+    else
+    {
+      ezDebugRenderer::Draw3DText(hView, ezFmt("ScreenSize: {}", ezArgF(fScreenSize, 3)), sphere.m_vCenter, c);
+    }
+    ezDebugRenderer::DrawLineSphere(hView, sphere, c);
+  }
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

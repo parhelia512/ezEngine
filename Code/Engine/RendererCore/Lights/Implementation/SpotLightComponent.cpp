@@ -2,26 +2,24 @@
 
 #include <Core/WorldSerializer/WorldReader.h>
 #include <Core/WorldSerializer/WorldWriter.h>
-#include <RendererCore/Debug/DebugRenderer.h>
 #include <RendererCore/Lights/Implementation/ShadowPool.h>
 #include <RendererCore/Lights/SpotLightComponent.h>
 #include <RendererCore/Pipeline/View.h>
 
-#if EZ_ENABLED(EZ_COMPILE_FOR_DEVELOPMENT)
-ezCVarBool cvar_RenderingLightingVisScreenSpaceSize("Rendering.Lighting.VisScreenSpaceSize", false, ezCVarFlags::Default, "Enables debug visualization of light screen space size calculation");
-#endif
+constexpr ezAngle c_MaxSpotAngle = ezAngle::MakeFromDegree(160.0f);
 
 // clang-format off
 EZ_BEGIN_DYNAMIC_REFLECTED_TYPE(ezSpotLightRenderData, 1, ezRTTIDefaultAllocator<ezSpotLightRenderData>)
 EZ_END_DYNAMIC_REFLECTED_TYPE;
 
-EZ_BEGIN_COMPONENT_TYPE(ezSpotLightComponent, 2, ezComponentMode::Static)
+EZ_BEGIN_COMPONENT_TYPE(ezSpotLightComponent, 3, ezComponentMode::Static)
 {
   EZ_BEGIN_PROPERTIES
   {
     EZ_ACCESSOR_PROPERTY("Range", GetRange, SetRange)->AddAttributes(new ezClampValueAttribute(0.0f, ezVariant()), new ezDefaultValueAttribute(0.0f), new ezSuffixAttribute(" m"), new ezMinValueTextAttribute("Auto")),
-    EZ_ACCESSOR_PROPERTY("InnerSpotAngle", GetInnerSpotAngle, SetInnerSpotAngle)->AddAttributes(new ezClampValueAttribute(ezAngle::MakeFromDegree(0.0f), ezAngle::MakeFromDegree(179.0f)), new ezDefaultValueAttribute(ezAngle::MakeFromDegree(15.0f))),
-    EZ_ACCESSOR_PROPERTY("OuterSpotAngle", GetOuterSpotAngle, SetOuterSpotAngle)->AddAttributes(new ezClampValueAttribute(ezAngle::MakeFromDegree(0.0f), ezAngle::MakeFromDegree(179.0f)), new ezDefaultValueAttribute(ezAngle::MakeFromDegree(30.0f))),
+    EZ_ACCESSOR_PROPERTY("InnerSpotAngle", GetInnerSpotAngle, SetInnerSpotAngle)->AddAttributes(new ezClampValueAttribute(ezAngle::MakeZero(), c_MaxSpotAngle), new ezDefaultValueAttribute(ezAngle::MakeFromDegree(15.0f))),
+    EZ_ACCESSOR_PROPERTY("OuterSpotAngle", GetOuterSpotAngle, SetOuterSpotAngle)->AddAttributes(new ezClampValueAttribute(ezAngle::MakeZero(), c_MaxSpotAngle), new ezDefaultValueAttribute(ezAngle::MakeFromDegree(30.0f))),
+    EZ_ACCESSOR_PROPERTY("ShadowFadeOutRange", GetShadowFadeOutRange, SetShadowFadeOutRange)->AddAttributes(new ezClampValueAttribute(0.0f, ezVariant()), new ezSuffixAttribute(" m"), new ezMinValueTextAttribute("Auto")),
     //EZ_ACCESSOR_PROPERTY("ProjectedTexture", GetProjectedTextureFile, SetProjectedTextureFile)->AddAttributes(new ezAssetBrowserAttribute("CompatibleAsset_Texture_2D")),
   }
   EZ_END_PROPERTIES;
@@ -70,9 +68,21 @@ float ezSpotLightComponent::GetEffectiveRange() const
   return m_fEffectiveRange;
 }
 
+void ezSpotLightComponent::SetShadowFadeOutRange(float fRange)
+{
+  m_fShadowFadeOutRange = ezMath::Max(fRange, 0.0f);
+
+  InvalidateCachedRenderData();
+}
+
+float ezSpotLightComponent::GetShadowFadeOutRange() const
+{
+  return m_fShadowFadeOutRange;
+}
+
 void ezSpotLightComponent::SetInnerSpotAngle(ezAngle spotAngle)
 {
-  m_InnerSpotAngle = ezMath::Clamp(spotAngle, ezAngle::MakeFromDegree(0.0f), m_OuterSpotAngle);
+  m_InnerSpotAngle = ezMath::Clamp(spotAngle, ezAngle::MakeZero(), m_OuterSpotAngle);
 
   InvalidateCachedRenderData();
 }
@@ -84,7 +94,7 @@ ezAngle ezSpotLightComponent::GetInnerSpotAngle() const
 
 void ezSpotLightComponent::SetOuterSpotAngle(ezAngle spotAngle)
 {
-  m_OuterSpotAngle = ezMath::Clamp(spotAngle, m_InnerSpotAngle, ezAngle::MakeFromDegree(179.0f));
+  m_OuterSpotAngle = ezMath::Clamp(spotAngle, m_InnerSpotAngle, c_MaxSpotAngle);
 
   TriggerLocalBoundsUpdate();
 }
@@ -136,17 +146,15 @@ void ezSpotLightComponent::OnMsgExtractRenderData(ezMsgExtractRenderData& msg) c
     return;
 
   const ezTransform t = GetOwner()->GetGlobalTransform();
-  const ezBoundingSphere bs = CalculateBoundingSphere(t, m_fEffectiveRange * 0.5f);
+  ezBoundingSphere bounds = CalculateBoundingSphere(t, m_fEffectiveRange);
+  bounds.m_vCenter = (bounds.m_vCenter + t.m_vPosition) * 0.5f; // Halfway between light origin and cone center
 
-  const float fScreenSpaceSize = CalculateScreenSpaceSize(bs, *msg.m_pView->GetCullingCamera());
+  const float fScreenSpaceSize = CalculateScreenSpaceSize(bounds, *msg.m_pView->GetCullingCamera());
+  float fShadowScreenSize = 0.0f;
+  const float fShadowFadeOut = CalculateShadowFadeOut(bounds, m_fShadowFadeOutRange, *msg.m_pView->GetCullingCamera(), fShadowScreenSize);
 
 #if EZ_ENABLED(EZ_COMPILE_FOR_DEVELOPMENT)
-  if (cvar_RenderingLightingVisScreenSpaceSize)
-  {
-    ezColor c = ezColorScheme::LightUI(ezColorScheme::Cyan);
-    ezDebugRenderer::Draw3DText(msg.m_pView->GetHandle(), ezFmt("{0}", fScreenSpaceSize), t.m_vPosition, c);
-    ezDebugRenderer::DrawLineSphere(msg.m_pView->GetHandle(), bs, c);
-  }
+  VisualizeScreenSpaceSize(msg.m_pView->GetHandle(), bounds, fScreenSpaceSize, fShadowScreenSize, fShadowFadeOut);
 #endif
 
   auto pRenderData = ezCreateRenderDataForThisFrame<ezSpotLightRenderData>(GetOwner());
@@ -159,7 +167,15 @@ void ezSpotLightComponent::OnMsgExtractRenderData(ezMsgExtractRenderData& msg) c
   pRenderData->m_InnerSpotAngle = m_InnerSpotAngle;
   pRenderData->m_OuterSpotAngle = m_OuterSpotAngle;
   // pRenderData->m_hProjectedTexture = m_hProjectedTexture;
-  pRenderData->m_uiShadowDataOffset = m_bCastShadows ? ezShadowPool::AddSpotLight(this, fScreenSpaceSize, msg.m_pView) : ezInvalidIndex;
+
+  if (m_bCastShadows && fShadowFadeOut > 0.0f)
+  {
+    pRenderData->FillShadowDataOffsetAndFadeOut(ezShadowPool::AddSpotLight(this, fScreenSpaceSize, msg.m_pView), fShadowFadeOut);
+  }
+  else
+  {
+    pRenderData->m_uiShadowDataOffsetAndFadeOut = 0;
+  }
 
   pRenderData->FillBatchIdAndSortingKey(fScreenSpaceSize);
 
@@ -174,6 +190,7 @@ void ezSpotLightComponent::SerializeComponent(ezWorldWriter& inout_stream) const
   ezStreamWriter& s = inout_stream.GetStream();
 
   s << m_fRange;
+  s << m_fShadowFadeOutRange;
   s << m_InnerSpotAngle;
   s << m_OuterSpotAngle;
   s << ""; // GetProjectedTextureFile();
@@ -182,12 +199,16 @@ void ezSpotLightComponent::SerializeComponent(ezWorldWriter& inout_stream) const
 void ezSpotLightComponent::DeserializeComponent(ezWorldReader& inout_stream)
 {
   SUPER::DeserializeComponent(inout_stream);
-  // const ezUInt32 uiVersion = stream.GetComponentTypeVersion(GetStaticRTTI());
+  const ezUInt32 uiVersion = inout_stream.GetComponentTypeVersion(GetStaticRTTI());
   ezStreamReader& s = inout_stream.GetStream();
 
   ezTexture2DResourceHandle m_hProjectedTexture;
 
   s >> m_fRange;
+  if (uiVersion >= 3)
+  {
+    s >> m_fShadowFadeOutRange;
+  }
   s >> m_InnerSpotAngle;
   s >> m_OuterSpotAngle;
 

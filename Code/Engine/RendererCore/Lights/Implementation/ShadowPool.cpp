@@ -46,6 +46,8 @@ ezCVarBool cvar_RenderingShadowsShowPoolStats("Rendering.Shadows.ShowPoolStats",
 ezCVarBool cvar_RenderingShadowsVisCascadeBounds("Rendering.Shadows.VisCascadeBounds", false, ezCVarFlags::Default, "Visualizes the bounding volumes of shadow cascades");
 #endif
 
+ezCVarFloat cvar_RenderingShadowsScaleMappingExponent("Rendering.Shadows.ScaleMappingExponent", 1.5f, ezCVarFlags::Default, "Determines how fast the shadow map size is reduced with screen space size");
+
 /// NOTE: The default values for these are defined in ezCoreRenderProfileConfig
 ///       but they can also be overwritten in custom game states at startup.
 EZ_RENDERERCORE_DLL ezCVarInt cvar_RenderingShadowsAtlasSize("Rendering.Shadows.AtlasSize", 4096, ezCVarFlags::RequiresDelayedSync, "The size of the shadow atlas texture.");
@@ -53,8 +55,7 @@ EZ_RENDERERCORE_DLL ezCVarInt cvar_RenderingShadowsMaxShadowMapSize("Rendering.S
 EZ_RENDERERCORE_DLL ezCVarInt cvar_RenderingShadowsMinShadowMapSize("Rendering.Shadows.MinShadowMapSize", 64, ezCVarFlags::RequiresDelayedSync, "The min shadow map size used.");
 
 static ezUInt32 s_uiLastConfigModification = 0;
-static float s_fFadeOutScaleStart = 0.0f;
-static float s_fFadeOutScaleEnd = 0.0f;
+static float s_fMinRelativeShadowMapSize = 0.0f;
 
 struct ShadowView
 {
@@ -312,8 +313,7 @@ struct ezShadowPool::Data
 
       m_hShadowAtlasTexture = ezGALDevice::GetDefaultDevice()->CreateTexture(desc);
 
-      s_fFadeOutScaleStart = (cvar_RenderingShadowsMinShadowMapSize + 1.0f) / cvar_RenderingShadowsMaxShadowMapSize;
-      s_fFadeOutScaleEnd = s_fFadeOutScaleStart * 0.5f;
+      s_fMinRelativeShadowMapSize = (cvar_RenderingShadowsMinShadowMapSize - 1.0f) / cvar_RenderingShadowsMaxShadowMapSize;
     }
   }
 
@@ -598,13 +598,9 @@ ezUInt32 ezShadowPool::AddPointLight(const ezPointLightComponent* pPointLight, f
 {
   EZ_ASSERT_DEBUG(pPointLight->GetCastShadows(), "Implementation error");
 
-  if (fScreenSpaceSize < s_fFadeOutScaleEnd * 2.0f)
-  {
-    return ezInvalidIndex;
-  }
-
+  const float fShadowMapScale = fScreenSpaceSize * 0.5f;
   ShadowData* pData = nullptr;
-  if (s_pData->GetDataForExtraction(pPointLight, nullptr, fScreenSpaceSize, sizeof(ezPointShadowData), pData))
+  if (s_pData->GetDataForExtraction(pPointLight, nullptr, fShadowMapScale, sizeof(ezPointShadowData), pData))
   {
     return pData->m_uiPackedDataOffset;
   }
@@ -675,13 +671,9 @@ ezUInt32 ezShadowPool::AddSpotLight(const ezSpotLightComponent* pSpotLight, floa
 {
   EZ_ASSERT_DEBUG(pSpotLight->GetCastShadows(), "Implementation error");
 
-  if (fScreenSpaceSize < s_fFadeOutScaleEnd)
-  {
-    return ezInvalidIndex;
-  }
-
+  const float fShadowMapScale = fScreenSpaceSize * 0.5f;
   ShadowData* pData = nullptr;
-  if (s_pData->GetDataForExtraction(pSpotLight, nullptr, fScreenSpaceSize, sizeof(ezSpotShadowData), pData))
+  if (s_pData->GetDataForExtraction(pSpotLight, nullptr, fShadowMapScale, sizeof(ezSpotShadowData), pData))
   {
     return pData->m_uiPackedDataOffset;
   }
@@ -817,19 +809,18 @@ void ezShadowPool::OnExtractionEvent(const ezRenderWorldExtractionEvent& e)
     ezUInt32 uiShadowDataIndex = sorted.m_uiIndex;
     auto& shadowData = s_pData->m_ShadowData[uiShadowDataIndex];
 
-    ezUInt32 uiShadowMapSize = cvar_RenderingShadowsMaxShadowMapSize;
-    float fadeOutStart = s_fFadeOutScaleStart;
-    float fadeOutEnd = s_fFadeOutScaleEnd;
+    ezUInt32 uiMaxShadowMapSize = cvar_RenderingShadowsMaxShadowMapSize;
+    float fMinRelativeShadowMapSize = s_fMinRelativeShadowMapSize;
 
     // point lights use a lot of atlas space thus we cut the shadow map size in half
     if (shadowData.m_uiType == LIGHT_TYPE_POINT)
     {
-      uiShadowMapSize /= 2;
-      fadeOutStart *= 2.0f;
-      fadeOutEnd *= 2.0f;
+      uiMaxShadowMapSize /= 2;
+      fMinRelativeShadowMapSize *= 2.0f;
     }
 
-    uiShadowMapSize = ezMath::PowerOfTwo_Ceil((ezUInt32)(uiShadowMapSize * ezMath::Clamp(shadowData.m_fShadowMapScale, fadeOutStart, 1.0f)));
+    const float fClampedShadowMapScale = ezMath::Clamp(ezMath::Pow(shadowData.m_fShadowMapScale, cvar_RenderingShadowsScaleMappingExponent), fMinRelativeShadowMapSize, 1.0f);
+    const ezUInt32 uiShadowMapSize = ezMath::PowerOfTwo_Ceil((ezUInt32)(uiMaxShadowMapSize * fClampedShadowMapScale));
 
     ezHybridArray<ezView*, 8> shadowViews;
     ezHybridArray<ezRectU32, 8> atlasRects;
@@ -981,7 +972,8 @@ void ezShadowPool::OnExtractionEvent(const ezRenderWorldExtractionEvent& e)
       texMatrix.SetDiagonal(ezVec4(0.5f, -0.5f, 1.0f, 1.0f));
       texMatrix.SetTranslationVector(ezVec3(0.5f, 0.5f, 0.0f));
 
-      ezAngle fov;
+      ezAngle fov = ezAngle::MakeZero();
+      float fRange = 0.0f;
 
       for (ezUInt32 uiViewIndex = 0; uiViewIndex < shadowData.m_Views.GetCount(); ++uiViewIndex)
       {
@@ -1003,6 +995,7 @@ void ezShadowPool::OnExtractionEvent(const ezRenderWorldExtractionEvent& e)
           atlasMatrix.SetTranslationVector(offset.GetAsVec3(0.0f));
 
           fov = pShadowView->GetCamera()->GetFovY(1.0f);
+          fRange = pShadowView->GetCamera()->GetFarPlane();
           const ezMat4& viewProjection = pShadowView->GetViewProjectionMatrix(ezCameraEye::Left);
 
           worldToLightMatrix = atlasMatrix * texMatrix * viewProjection;
@@ -1013,21 +1006,23 @@ void ezShadowPool::OnExtractionEvent(const ezRenderWorldExtractionEvent& e)
         }
       }
 
-      float screenHeight = ezMath::Tan(fov * 0.5f) * 20.0f; // screen height in worldspace at 10m distance
-      float texelSize = 1.0f / uiShadowMapSize;
-      float penumbraSize = ezMath::Max(shadowData.m_fPenumbraSize / screenHeight, texelSize);
-      float relativeShadowSize = uiShadowMapSize * fAtlasInvHeight;
+      const float screenHeight = ezMath::Tan(fov * 0.5f) * 20.0f; // screen height in worldspace at 10m distance
+      const float texelSize = 1.0f / uiShadowMapSize;
+      const float penumbraSize = ezMath::Max(shadowData.m_fPenumbraSize / screenHeight, texelSize);
+      const float relativeShadowSize = uiShadowMapSize * fAtlasInvHeight;
 
-      float slopeBias = shadowData.m_fSlopeBias * penumbraSize * ezMath::Tan(fov * 0.5f);
-      float constantBias = shadowData.m_fConstantBias * cvar_RenderingShadowsMaxShadowMapSize / uiShadowMapSize;
-      float fadeOut = ezMath::Clamp((shadowData.m_fShadowMapScale - fadeOutEnd) / (fadeOutStart - fadeOutEnd), 0.0f, 1.0f);
+      // empirical tweak factors
+      const float fovFactor = 0.15f * ezMath::Pow(5.5f, fov.GetRadian());
+      const float rangeFactor = ezMath::Max(0.018f * fRange + 0.0098f * fRange * fRange, 0.1f);
+      const float slopeBias = shadowData.m_fSlopeBias * penumbraSize * fovFactor * rangeFactor;
+      const float constantBias = shadowData.m_fConstantBias * cvar_RenderingShadowsMaxShadowMapSize / uiShadowMapSize;
 
       ezUInt32 uiParamsIndex = GET_SHADOW_PARAMS_INDEX(shadowData.m_uiPackedDataOffset);
       ezVec4& shadowParams = packedShadowData[uiParamsIndex];
       shadowParams.x = slopeBias;
       shadowParams.y = constantBias;
       shadowParams.z = penumbraSize * relativeShadowSize;
-      shadowParams.w = ezMath::Sqrt(fadeOut);
+      shadowParams.w = 0.0f;
     }
   }
 
