@@ -222,7 +222,12 @@ void ezQtAssetBrowserWidget::dropEvent(QDropEvent* pEvent)
     ezFileSystemModel::GetSingleton()->NotifyOfChange(file);
   }
 
-  ezAssetDocumentGenerator::ImportAssets(assetsToImport);
+  QTimer::singleShot(1, this, [=]()
+    {
+      // return to the OS and import with a slight delay, otherwise the drop operation blocks the OS
+      ezAssetDocumentGenerator::ImportAssets(assetsToImport);
+      //
+    });
 
   // now that we've successfully imported the assets, clear this list so that the files don't get deleted
   assetsToImport.Clear();
@@ -1235,7 +1240,7 @@ void ezQtAssetBrowserWidget::NewAsset()
 
   ezAssetDocumentManager* pManager = (ezAssetDocumentManager*)pSender->property("AssetManager").value<void*>();
   ezString sAssetType = pSender->property("AssetType").toString().toUtf8().data();
-  ezString sTranslateAssetType = ezTranslate(sAssetType);
+  ezString sStartFileName = ezTranslate(sAssetType);
   ezString sExtension = pSender->property("Extension").toString().toUtf8().data();
   bool useSelection = pSender->property("UseSelection").toBool();
 
@@ -1260,6 +1265,8 @@ void ezQtAssetBrowserWidget::NewAsset()
         sPath = temp.GetFileDirectory();
 
         sStartDir = sPath.GetData();
+
+        sStartFileName = temp.GetFileName();
       }
     }
   }
@@ -1272,7 +1279,7 @@ void ezQtAssetBrowserWidget::NewAsset()
 
   ezStringBuilder sNewAsset = qtToEzString(sStartDir);
   ezStringBuilder sBaseFileName;
-  ezPathUtils::MakeValidFilename(sTranslateAssetType, ' ', sBaseFileName);
+  ezPathUtils::MakeValidFilename(sStartFileName, ' ', sBaseFileName);
   sNewAsset.AppendFormat("/{}.{}", sBaseFileName, sExtension);
 
   for (ezUInt32 i = 2; ezOSFile::ExistsFile(sNewAsset); i++)
