@@ -7,6 +7,7 @@
 #include <RendererFoundation/CommandEncoder/CommandEncoderPlatformInterface.h>
 #include <RendererFoundation/Resources/RenderTargetSetup.h>
 #include <RendererVulkan/Cache/ResourceCacheVulkan.h>
+#include <RendererVulkan/Pools/UniformBufferPoolVulkan.h>
 
 #include <vulkan/vulkan.hpp>
 
@@ -32,8 +33,10 @@ public:
 
   void Reset();
 
+  void EndFrame();
   void SetCurrentCommandBuffer(vk::CommandBuffer* commandBuffer, ezPipelineBarrierVulkan* pipelineBarrier);
-  void CommandBufferSubmitted(vk::Fence submitFence);
+  void BeforeCommandBufferSubmit();
+  void AfterCommandBufferSubmit(vk::Fence submitFence);
 
   // ezGALCommandEncoderCommonPlatformInterface
   // State setting functions
@@ -161,6 +164,8 @@ private:
   vk::CommandBuffer* m_pCommandBuffer = nullptr;
   ezPipelineBarrierVulkan* m_pPipelineBarrier = nullptr;
 
+  ezUniquePtr<ezUniformBufferPoolVulkan> m_pUniformBufferPool;
+
   // Cache flags.
   bool m_bPipelineStateDirty = true;
   bool m_bViewportDirty = true;
@@ -201,4 +206,7 @@ private:
   ezHybridArray<vk::DescriptorSet, 4> m_DescriptorSets;
 
   ezDynamicArray<ezUInt8> m_PushConstants;
+
+  ezDeque<vk::DescriptorBufferInfo> m_DynamicUniformBuffers;
+  ezHybridArray<ezUInt32, 6> m_DynamicUniformBufferOffsets;
 };
