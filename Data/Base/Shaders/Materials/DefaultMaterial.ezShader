@@ -57,6 +57,27 @@ Texture2D EmissiveTexture;
 
 #include <Shaders/Materials/MaterialState.h>
 
+[SHADER]
+
+#include <Shaders/Common/GlobalConstants.h>
+
+CONSTANT_BUFFER(ezMaterialConstants, 1)
+{
+  COLOR4F(BaseColor);
+  COLOR4F(EmissiveColor);
+  FLOAT1(MetallicValue);
+  FLOAT1(ReflectanceValue);
+  FLOAT1(RoughnessValue);
+  FLOAT1(MaskThreshold);
+  BOOL1(UseBaseTexture);
+  BOOL1(UseNormalTexture);
+  BOOL1(UseRoughnessTexture);
+  BOOL1(UseMetallicTexture);
+  BOOL1(UseEmissiveTexture);
+  BOOL1(UseOcclusionTexture);
+  BOOL1(UseOrmTexture);
+};
+
 [VERTEXSHADER]
 
 #define USE_NORMAL
@@ -71,7 +92,6 @@ Texture2D EmissiveTexture;
   #define USE_DEBUG_INTERPOLATOR
 #endif
 
-#include <Shaders/Materials/DefaultMaterialCB.h>
 #include <Shaders/Materials/MaterialVertexShader.h>
 
 VS_OUT main(VS_IN Input)
@@ -114,7 +134,6 @@ VS_OUT main(VS_IN Input)
   #define USE_DEBUG_INTERPOLATOR
 #endif
 
-#include <Shaders/Materials/DefaultMaterialCB.h>
 #include <Shaders/Materials/MaterialPixelShader.h>
 
 Texture2D BaseTexture;

@@ -57,8 +57,6 @@ int KrautTreeMode; // 0 == regular mesh, 1 == frond, 2 == leaf, 3 == static impo
   #define USE_DEBUG_INTERPOLATOR
 #endif
 
-[VERTEXSHADER]
-
 #include <Shaders/Common/GlobalConstants.h>
 
 CONSTANT_BUFFER(ezMaterialConstants, 1)
@@ -79,6 +77,8 @@ CONSTANT_BUFFER(ezMaterialConstants, 1)
   INT1(KrautTreeMode);
   COLOR4F(SubsurfaceColor);
 };
+
+[VERTEXSHADER]
 
 #include <Shaders/Materials/MaterialVertexShader.h>
 #include "TreeShaderData.h"
@@ -265,27 +265,6 @@ void CopyCustomInterpolators(GS_OUT output, VS_OUT input)
 #define USE_MATERIAL_OCCLUSION
 #define USE_TWO_SIDED_LIGHTING
 #define USE_FOG
-
-#include <Shaders/Common/GlobalConstants.h>
-
-CONSTANT_BUFFER(ezMaterialConstants, 1)
-{
-  COLOR4F(VariationColor);
-  COLOR4F(EmissiveColor);
-  FLOAT1(MetallicValue);
-  FLOAT1(ReflectanceValue);
-  FLOAT1(RoughnessValue);
-  FLOAT1(MaskThreshold);
-  BOOL1(UseBaseTexture);
-  BOOL1(UseMetallicTexture);
-  BOOL1(UseNormalTexture);
-  BOOL1(UseRoughnessTexture);
-  BOOL1(UseEmissiveTexture);
-  BOOL1(UseOcclusionTexture);
-  
-  INT1(KrautTreeMode);
-  COLOR4F(SubsurfaceColor);
-};
 
 #include <Shaders/Materials/MaterialPixelShader.h>
 
