@@ -1,5 +1,6 @@
 #include <EditorPluginAssets/EditorPluginAssetsPCH.h>
 
+#include <EditorFramework/Assets/AssetCurator.h>
 #include <EditorPluginVisualScript/VisualScriptGraph/VisualScriptGraph.h>
 #include <EditorPluginVisualScript/VisualScriptGraph/VisualScriptGraphQt.moc.h>
 #include <EditorPluginVisualScript/VisualScriptGraph/VisualScriptNodeRegistry.h>
@@ -157,6 +158,22 @@ void ezQtVisualScriptNode::UpdateState()
       else if (val.IsA<ezString>() || val.IsA<ezHashedString>())
       {
         sVal = val.ConvertTo<ezString>();
+
+        if (prop->GetAttributeByType<ezAssetBrowserAttribute>())
+        {
+          if (ezConversionUtils::IsStringUuid(sVal))
+          {
+            const ezUuid AssetGuid = ezConversionUtils::ConvertStringToUuid(sVal);
+
+            auto pAsset = ezAssetCurator::GetSingleton()->GetSubAsset(AssetGuid);
+
+            if (pAsset)
+              sVal = pAsset->m_pAssetInfo->m_Path.GetDataDirRelativePath().GetFileName();
+            else
+              sVal = "<unknown>";
+          }
+        }
+
         sVal.ReplaceAll("\n", " ");
         sVal.ReplaceAll("\t", " ");
 
