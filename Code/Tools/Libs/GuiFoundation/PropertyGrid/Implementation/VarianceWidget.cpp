@@ -29,7 +29,11 @@ ezQtVarianceTypeWidget::ezQtVarianceTypeWidget()
   m_pVarianceWidget->setMaximum(100);
   m_pVarianceWidget->setSingleStep(1);
 
+  QLabel* pText = new QLabel("Variance:");
+  pText->setToolTip("Random deviation of base value:\nSlider to the left -> 0 variance, no randomness at all.\nSlider in the middle -> 0.5 variance, value will be in range [0.5 * base ... 1.5 * base]\nSlider to the right -> full variance, value will be in range [0 ... 2 * base]\n\nNote that values deviate from base using a Bell curve, meaning that values close to 'base' are more likely.");
+
   m_pLayout->addWidget(m_pValueWidget);
+  m_pLayout->addWidget(pText);
   m_pLayout->addWidget(m_pVarianceWidget);
 
   connect(m_pValueWidget, SIGNAL(editingFinished()), this, SLOT(onEndTemporary()));
@@ -113,7 +117,7 @@ void ezQtVarianceTypeWidget::OnInit()
   }
   if (const ezClampValueAttribute* pClamp = m_pProp->GetAttributeByType<ezClampValueAttribute>())
   {
-    if (pClamp->GetMinValue().CanConvertTo<double>())
+    if (pClamp->GetMinValue().CanConvertTo<double>() || pClamp->GetMinValue().IsA<ezTime>() || pClamp->GetMinValue().IsA<ezAngle>())
     {
       m_pValueWidget->setMinimum(pClamp->GetMinValue());
     }
@@ -134,7 +138,7 @@ void ezQtVarianceTypeWidget::OnInit()
   }
   if (const ezDefaultValueAttribute* pDefault = m_pProp->GetAttributeByType<ezDefaultValueAttribute>())
   {
-    if (pDefault->GetValue().CanConvertTo<double>())
+    if (pDefault->GetValue().CanConvertTo<double>() || pDefault->GetValue().IsA<ezTime>() || pDefault->GetValue().IsA<ezAngle>())
     {
       m_pValueWidget->setDefaultValue(pDefault->GetValue());
     }
