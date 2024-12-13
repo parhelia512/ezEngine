@@ -313,7 +313,6 @@ void ezQtEditorApp::StartupEditor(ezBitflags<StartupFlags> startupFlags, const c
   ezToolsProject::s_Requests.AddEventHandler(ezMakeDelegate(&ezQtEditorApp::ProjectRequestHandler, this));
   ezToolsProject::s_Events.AddEventHandler(ezMakeDelegate(&ezQtEditorApp::ProjectEventHandler, this));
   ezEditorEngineProcessConnection::s_Events.AddEventHandler(ezMakeDelegate(&ezQtEditorApp::EngineProcessMsgHandler, this));
-  ezQtDocumentWindow::s_Events.AddEventHandler(ezMakeDelegate(&ezQtEditorApp::DocumentWindowEventHandler, this));
   ezQtUiServices::s_Events.AddEventHandler(ezMakeDelegate(&ezQtEditorApp::UiServicesEvents, this));
 
   ezStartup::StartupCoreSystems();
@@ -385,9 +384,9 @@ void ezQtEditorApp::StartupEditor(ezBitflags<StartupFlags> startupFlags, const c
 
     LoadRecentFiles();
 
-    CreatePanels();
-
     ShowSettingsDocument();
+
+    CreatePanels();
 
     if (!IsInUnitTestMode())
     {
@@ -478,7 +477,6 @@ void ezQtEditorApp::ShutdownEditor()
   ezDocument::s_EventsAny.RemoveEventHandler(ezMakeDelegate(&ezQtEditorApp::DocumentEventHandler, this));
   ezDocumentManager::s_Requests.RemoveEventHandler(ezMakeDelegate(&ezQtEditorApp::DocumentManagerRequestHandler, this));
   ezDocumentManager::s_Events.RemoveEventHandler(ezMakeDelegate(&ezQtEditorApp::DocumentManagerEventHandler, this));
-  ezQtDocumentWindow::s_Events.RemoveEventHandler(ezMakeDelegate(&ezQtEditorApp::DocumentWindowEventHandler, this));
   ezQtUiServices::s_Events.RemoveEventHandler(ezMakeDelegate(&ezQtEditorApp::UiServicesEvents, this));
 
   ezQtUiServices::GetSingleton()->SaveState();
@@ -543,24 +541,26 @@ void ezQtEditorApp::ShutdownEditor()
   EZ_DEFAULT_DELETE(m_pProgressbar);
 }
 
-
-
 void ezQtEditorApp::CreatePanels()
 {
   EZ_PROFILE_SCOPE("CreatePanels");
   ezQtApplicationPanel* pAssetBrowserPanel = new ezQtAssetBrowserPanel();
-  ezQtApplicationPanel* pLogPanel = new ezQtLogPanel();
-  ezQtApplicationPanel* pLongOpsPanel = new ezQtLongOpsPanel();
-  ezQtApplicationPanel* pCVarPanel = new ezQtCVarPanel();
   ezQtApplicationPanel* pAssetCuratorPanel = new ezQtAssetCuratorPanel();
+  ezQtApplicationPanel* pLogPanel = new ezQtLogPanel();
+  ezQtApplicationPanel* pCVarPanel = new ezQtCVarPanel();
+  ezQtApplicationPanel* pLongOpsPanel = new ezQtLongOpsPanel();
 
   ezQtContainerWindow* pMainWnd = ezQtContainerWindow::GetContainerWindow();
   ads::CDockManager* pDockManager = pMainWnd->GetDockManager();
   pDockManager->addDockWidgetTab(ads::RightDockWidgetArea, pAssetBrowserPanel);
-  pDockManager->addDockWidgetTab(ads::RightDockWidgetArea, pLogPanel);
   pDockManager->addDockWidgetTab(ads::RightDockWidgetArea, pAssetCuratorPanel);
+  pDockManager->addDockWidgetTab(ads::RightDockWidgetArea, pLogPanel);
   pDockManager->addDockWidgetTab(ads::RightDockWidgetArea, pCVarPanel);
   pDockManager->addDockWidgetTab(ads::RightDockWidgetArea, pLongOpsPanel);
+
+  // by default these panels can be hidden
+  pCVarPanel->toggleView(false);
+  pLongOpsPanel->toggleView(false);
 
   pAssetBrowserPanel->raise();
 }

@@ -248,7 +248,6 @@ private:
   void DocumentManagerRequestHandler(ezDocumentManager::Request& r);
   void DocumentManagerEventHandler(const ezDocumentManager::Event& r);
   void DocumentEventHandler(const ezDocumentEvent& e);
-  void DocumentWindowEventHandler(const ezQtDocumentWindowEvent& e);
   void ProjectRequestHandler(ezToolsProjectRequest& r);
   void ProjectEventHandler(const ezToolsProjectEvent& r);
   void EngineProcessMsgHandler(const ezEditorEngineProcessConnection::Event& e);
@@ -268,6 +267,8 @@ private:
 
   void SetupAndShowSplashScreen();
   void CloseSplashScreen();
+
+  void OpenDemoDocument();
 
   ezResult AddBundlesInOrder(ezDynamicArray<ezApplicationPluginConfig::PluginConfig>& order, const ezPluginBundleSet& bundles, const ezString& start, bool bEditor, bool bEditorEngine, bool bRuntime) const;
 
