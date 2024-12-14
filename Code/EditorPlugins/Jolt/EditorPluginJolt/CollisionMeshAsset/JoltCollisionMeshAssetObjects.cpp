@@ -28,13 +28,14 @@ EZ_BEGIN_STATIC_REFLECTED_ENUM(ezJoltConvexCollisionMeshType, 1)
   EZ_ENUM_CONSTANT(ezJoltConvexCollisionMeshType::ConvexDecomposition),
 EZ_END_STATIC_REFLECTED_ENUM;
 
-EZ_BEGIN_DYNAMIC_REFLECTED_TYPE(ezJoltCollisionMeshAssetProperties, 1, ezRTTIDefaultAllocator<ezJoltCollisionMeshAssetProperties>)
+EZ_BEGIN_DYNAMIC_REFLECTED_TYPE(ezJoltCollisionMeshAssetProperties, 2, ezRTTIDefaultAllocator<ezJoltCollisionMeshAssetProperties>)
 {
   EZ_BEGIN_PROPERTIES
   {
+    EZ_ENUM_MEMBER_PROPERTY("ImportTransform", ezMeshImportTransform, m_ImportTransform),
     EZ_ENUM_MEMBER_PROPERTY("RightDir", ezBasisAxis, m_RightDir)->AddAttributes(new ezDefaultValueAttribute((int)ezBasisAxis::PositiveX)),
     EZ_ENUM_MEMBER_PROPERTY("UpDir", ezBasisAxis, m_UpDir)->AddAttributes(new ezDefaultValueAttribute((int)ezBasisAxis::PositiveY)),
-    EZ_MEMBER_PROPERTY("FlipForwardDir", m_bFlipForwardDir),
+    EZ_MEMBER_PROPERTY("FlipForwardDir", m_bFlipForwardDir)->AddAttributes(new ezDefaultValueAttribute(true)),
     EZ_MEMBER_PROPERTY("UniformScaling", m_fUniformScaling)->AddAttributes(new ezDefaultValueAttribute(1.0f)),
     EZ_MEMBER_PROPERTY("IsConvexMesh", m_bIsConvexMesh)->AddAttributes(new ezHiddenAttribute()),
     EZ_ENUM_MEMBER_PROPERTY("ConvexMeshType", ezJoltConvexCollisionMeshType, m_ConvexMeshType),
@@ -85,6 +86,12 @@ void ezJoltCollisionMeshAssetProperties::PropertyMetaStateEventHandler(ezPropert
   props["MaxSimplificationError"].m_Visibility = bSimplify ? ezPropertyUiState::Default : ezPropertyUiState::Invisible;
   props["AggressiveSimplification"].m_Visibility = bSimplify ? ezPropertyUiState::Default : ezPropertyUiState::Invisible;
 
+  const ezInt64 importTransform = e.m_pObject->GetTypeAccessor().GetValue("ImportTransform").ConvertTo<ezInt64>();
+  const bool bCustomTransform = importTransform == 127;
+  props["RightDir"].m_Visibility = bCustomTransform ? ezPropertyUiState::Default : ezPropertyUiState::Invisible;
+  props["UpDir"].m_Visibility = bCustomTransform ? ezPropertyUiState::Default : ezPropertyUiState::Invisible;
+  props["FlipForwardDir"].m_Visibility = bCustomTransform ? ezPropertyUiState::Default : ezPropertyUiState::Invisible;
+
   if (!isConvex)
   {
     props["MeshFile"].m_Visibility = ezPropertyUiState::Default;
@@ -112,3 +119,23 @@ void ezJoltCollisionMeshAssetProperties::PropertyMetaStateEventHandler(ezPropert
     }
   }
 }
+
+//////////////////////////////////////////////////////////////////////////
+
+#include <Foundation/Serialization/GraphPatch.h>
+
+class ezJoltCollisionMeshAssetProperties_1_2 : public ezGraphPatch
+{
+public:
+  ezJoltCollisionMeshAssetProperties_1_2()
+    : ezGraphPatch("ezJoltCollisionMeshAssetProperties", 2)
+  {
+  }
+
+  virtual void Patch(ezGraphPatchContext& ref_context, ezAbstractObjectGraph* pGraph, ezAbstractObjectNode* pNode) const override
+  {
+    pNode->AddProperty("ImportTransform", 127);
+  }
+};
+
+ezJoltCollisionMeshAssetProperties_1_2 g_ezJoltCollisionMeshAssetProperties_1_2;
