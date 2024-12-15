@@ -30,6 +30,7 @@ float3x3 TransformToRotation(Transform t)
   return float3x3(t.r0.xyz, t.r1.xyz, t.r2.xyz);
 }
 
+// Note: If extended, you need to extend Engine/RendererCore/ShaderCompiler/Implementation/ShaderParser.cpp as well as ezShaderConstant::Type.
 #  define CONSTANT_BUFFER(Name, Slot) cbuffer Name : register(b##Slot)
 #  define CONSTANT_BUFFER2(Name, Slot, Set) cbuffer Name : register(b##Slot, space##Set)
 #  define STRUCTURED_BUFFER(Name, Type) StructuredBuffer<Type> Name

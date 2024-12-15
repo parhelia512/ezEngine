@@ -9,7 +9,7 @@ struct ezRenderWorldExtractionEvent
 {
   enum class Type
   {
-    BeginExtraction,
+    BeginExtraction, // copy material stuff
     BeforeViewExtraction,
     AfterViewExtraction,
     EndExtraction
@@ -83,6 +83,7 @@ public:
 
   EZ_ALWAYS_INLINE static ezUInt64 GetFrameCounter() { return s_uiFrameCounter; }
 
+  // 0 or 1. Frame count / multi-threaded
   EZ_FORCE_INLINE static ezUInt32 GetDataIndexForExtraction() { return GetUseMultithreadedRendering() ? (s_uiFrameCounter & 1) : 0; }
 
   EZ_FORCE_INLINE static ezUInt32 GetDataIndexForRendering() { return GetUseMultithreadedRendering() ? ((s_uiFrameCounter + 1) & 1) : 0; }
