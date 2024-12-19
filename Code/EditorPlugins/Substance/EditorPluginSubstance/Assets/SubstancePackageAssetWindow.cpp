@@ -15,6 +15,13 @@
 ezQtSubstancePackageAssetWindow::ezQtSubstancePackageAssetWindow(ezSubstancePackageAssetDocument* pDocument)
   : ezQtEngineDocumentWindow(pDocument)
 {
+  if (pDocument->m_SelectedOutput.IsValid() == false)
+  {
+    auto pMetaData = pDocument->GetAssetDocumentInfo()->GetMetaInfo<ezSubstancePackageAssetMetaData>();
+    if (pMetaData->m_OutputUuids.GetCount() > 0)
+      pDocument->m_SelectedOutput = pMetaData->m_OutputUuids[0];
+  }
+
   // Menu Bar
   {
     ezQtMenuBarActionMapView* pMenuBar = static_cast<ezQtMenuBarActionMapView*>(menuBar());
@@ -64,13 +71,6 @@ ezQtSubstancePackageAssetWindow::ezQtSubstancePackageAssetWindow(ezSubstancePack
     m_pDockManager->addDockWidgetTab(ads::RightDockWidgetArea, pPropertyPanel);
 
     pDocument->GetSelectionManager()->SetSelection(pDocument->GetObjectManager()->GetRootObject()->GetChildren()[0]);
-  }
-
-  if (pDocument->m_SelectedOutput.IsValid() == false)
-  {
-    auto pMetaData = pDocument->GetAssetDocumentInfo()->GetMetaInfo<ezSubstancePackageAssetMetaData>();
-    if (pMetaData->m_OutputUuids.GetCount() > 0)
-      pDocument->m_SelectedOutput = pMetaData->m_OutputUuids[0];
   }
 
   FinishWindowCreation();
