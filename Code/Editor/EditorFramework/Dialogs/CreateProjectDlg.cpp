@@ -84,7 +84,7 @@ void ezQtCreateProjectDlg::UpdateUI()
     Next->setEnabled(!sFullPath.IsEmpty());
   }
 
-  switch (m_state)
+  switch (m_State)
   {
     case State::Basics:
       StackedPages->setCurrentIndex(0);
@@ -108,6 +108,9 @@ void ezQtCreateProjectDlg::UpdateUI()
       StackedPages->setCurrentIndex(3);
       Prev->setVisible(true);
       Next->setText("Create");
+      break;
+
+    case State::Create:
       break;
   }
 }
@@ -219,23 +222,24 @@ void ezQtCreateProjectDlg::on_ProjectName_textChanged(QString text)
 
 void ezQtCreateProjectDlg::on_Prev_clicked()
 {
-  switch (m_state)
+  switch (m_State)
   {
     case State::Templates:
-      m_state = State::Basics;
+      m_State = State::Basics;
       break;
 
     case State::Plugins:
-      m_state = State::Templates;
+      m_State = State::Templates;
       break;
 
     case State::Summary:
-
       if (m_sProjectTemplate.IsEmpty())
-        m_state = State::Plugins;
+        m_State = State::Plugins;
       else
-        m_state = State::Templates;
+        m_State = State::Templates;
+      break;
 
+    default:
       break;
   }
 
@@ -244,10 +248,10 @@ void ezQtCreateProjectDlg::on_Prev_clicked()
 
 void ezQtCreateProjectDlg::on_Next_clicked()
 {
-  switch (m_state)
+  switch (m_State)
   {
     case State::Basics:
-      m_state = State::Templates;
+      m_State = State::Templates;
       break;
 
     case State::Templates:
@@ -255,26 +259,28 @@ void ezQtCreateProjectDlg::on_Next_clicked()
       m_sProjectTemplate = ProjectTemplates->currentItem()->data(Qt::UserRole).toString().toUtf8().data();
 
       if (m_sProjectTemplate.IsEmpty())
-        m_state = State::Plugins;
+        m_State = State::Plugins;
       else
-        m_state = State::Summary;
+        m_State = State::Summary;
 
       break;
     }
 
     case State::Plugins:
       Plugins->SyncStateToSet();
-      m_state = State::Summary;
+      m_State = State::Summary;
       break;
 
     case State::Summary:
-      m_state = State::Create;
+      m_State = State::Create;
+      break;
+    case State::Create:
       break;
   }
 
   UpdateUI();
 
-  if (m_state == State::Create)
+  if (m_State == State::Create)
   {
     CreateProject();
 
