@@ -275,10 +275,9 @@ namespace ezModelImporter2
       {
         // NOTE: This is absolutely crucial for some meshes to work right
         // On the other hand, it is also possible that some meshes don't like this
-        // if we come across meshes where normalization breaks them, we may need to add a user-option to select whether bone weights should be normalized
 
         const float len = wgt.x + wgt.y + wgt.z + wgt.w;
-        if (len > 1.0f)
+        if (len != 1.0f)
         {
           wgt /= len;
 
