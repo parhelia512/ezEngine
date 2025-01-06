@@ -256,12 +256,19 @@ namespace ezModelImporter2
       }
     }
 
+    ezUInt32 uiZeroWeights = 0;
+
     for (ezUInt32 vtx = 0; vtx < ref_mb.GetVertexCount(); ++vtx)
     {
       ezByteArrayPtr pBoneWeights = ref_mb.GetVertexData(streams.uiBoneWgt, vtx);
 
       ezVec4 wgt;
       ezMeshBufferUtils::DecodeToVec4(pBoneWeights, ezMeshBoneWeigthPrecision::ToResourceFormat(weightsPrecision), wgt).AssertSuccess();
+
+      if (wgt.IsZero(0.001f))
+      {
+        ++uiZeroWeights;
+      }
 
       // normalize the bone weights
       if (bNormalizeWeights)
@@ -326,6 +333,11 @@ namespace ezModelImporter2
           }
         }
       }
+    }
+
+    if (uiZeroWeights > 0)
+    {
+      ezLog::Error("Mesh has {} vertices with bone weights that are zero. These will not show up!", uiZeroWeights);
     }
   }
 
