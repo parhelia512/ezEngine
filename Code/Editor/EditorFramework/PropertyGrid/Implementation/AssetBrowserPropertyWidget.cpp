@@ -289,8 +289,13 @@ void ezQtAssetPropertyWidget::ThumbnailInvalidated(QString sPath, ezUInt32 uiIma
 
 void ezQtAssetPropertyWidget::OnOpenAssetDocument()
 {
-  ezQtEditorApp::GetSingleton()->OpenDocumentQueued(
-    ezAssetCurator::GetSingleton()->GetSubAsset(m_AssetGuid)->m_pAssetInfo->m_Path.GetAbsolutePath(), GetSelection()[0].m_pObject);
+  if (!m_AssetGuid.IsValid())
+    return;
+
+  if (auto asset = ezAssetCurator::GetSingleton()->GetSubAsset(m_AssetGuid))
+  {
+    ezQtEditorApp::GetSingleton()->OpenDocumentQueued(asset->m_pAssetInfo->m_Path.GetAbsolutePath(), GetSelection()[0].m_pObject);
+  }
 }
 
 void ezQtAssetPropertyWidget::OnSelectInAssetBrowser()

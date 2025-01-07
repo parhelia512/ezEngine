@@ -255,7 +255,10 @@ namespace ezModelImporter2
         }
       }
     }
+  }
 
+  static void CheckBoneWeights(ezMeshBufferResourceDescriptor& ref_mb, ezMeshResourceDescriptor& ref_mrd, float& inout_fMaxBoneOffset, const StreamIndices& streams, bool b8BitBoneIndices, ezMeshBoneWeigthPrecision::Enum weightsPrecision, bool bNormalizeWeights)
+  {
     ezUInt32 uiZeroWeights = 0;
 
     for (ezUInt32 vtx = 0; vtx < ref_mb.GetVertexCount(); ++vtx)
@@ -269,20 +272,15 @@ namespace ezModelImporter2
       {
         ++uiZeroWeights;
       }
-
-      // normalize the bone weights
-      if (bNormalizeWeights)
+      else if (bNormalizeWeights)
       {
         // NOTE: This is absolutely crucial for some meshes to work right
         // On the other hand, it is also possible that some meshes don't like this
 
-        const float len = wgt.x + wgt.y + wgt.z + wgt.w;
-        if (len != 1.0f)
-        {
-          wgt /= len;
+        const float summedWeights = wgt.x + wgt.y + wgt.z + wgt.w;
 
-          ezMeshBufferUtils::EncodeBoneWeights(wgt, pBoneWeights, weightsPrecision).AssertSuccess();
-        }
+        wgt /= summedWeights;
+        ezMeshBufferUtils::EncodeBoneWeights(wgt, pBoneWeights, weightsPrecision).AssertSuccess();
       }
 
       const ezVec3 vVertexPos = *reinterpret_cast<const ezVec3*>(ref_mb.GetVertexData(streams.uiPositions, vtx).GetPtr());
@@ -333,6 +331,7 @@ namespace ezModelImporter2
         }
       }
     }
+
 
     if (uiZeroWeights > 0)
     {
@@ -740,6 +739,11 @@ namespace ezModelImporter2
 
       uiMeshPrevTriangleIdx = uiMeshCurTriangleIdx;
       ++uiMeshCurSubmeshIdx;
+    }
+
+    if (m_Options.m_bImportSkinningData)
+    {
+      CheckBoneWeights(mb, *m_Options.m_pMeshOutput, m_Options.m_pMeshOutput->m_fMaxBoneVertexOffset, streams, b8BitBoneIndices, m_Options.m_MeshBoneWeightPrecision, m_Options.m_bNormalizeWeights);
     }
 
     m_Options.m_pMeshOutput->ComputeBounds();
