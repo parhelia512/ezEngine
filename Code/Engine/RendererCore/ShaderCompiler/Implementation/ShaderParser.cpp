@@ -773,12 +773,12 @@ ezStatus ParseShaderConstantBufferLayout(const TokenStream& tokens, ezUInt32& re
   return ezStatus(ezFmt("Failed to parse shader constant, missing } at end of constant buffer."));
 }
 
-ezStatus ezShaderParser::ParseShaderSection(ezStringView sShaderSection, ezSharedPtr<ezShaderConstantBufferLayout>& out_pMaterialConstantBufferLayout)
+ezStatus ezShaderParser::ParseMaterialConstantsSection(ezStringView sMaterialConstantsSection, ezSharedPtr<ezShaderConstantBufferLayout>& out_pMaterialConstantBufferLayout)
 {
   InitializeTables();
 
   ezTokenizer tokenizer;
-  tokenizer.Tokenize(ezArrayPtr<const ezUInt8>((const ezUInt8*)sShaderSection.GetStartPointer(), sShaderSection.GetElementCount()), ezLog::GetThreadLocalLogSystem(), false);
+  tokenizer.Tokenize(ezArrayPtr<const ezUInt8>((const ezUInt8*)sMaterialConstantsSection.GetStartPointer(), sMaterialConstantsSection.GetElementCount()), ezLog::GetThreadLocalLogSystem(), false);
 
   TokenStream tokens;
   tokenizer.GetAllLines(tokens);
@@ -803,7 +803,7 @@ ezStatus ezShaderParser::ParseShaderSection(ezStringView sShaderSection, ezShare
     }
     ++uiCurToken;
   }
-  return ezStatus("Could not find ezMaterialConstants inside [SHADER] section!");
+  return ezStatus("Could not find ezMaterialConstants inside [MATERIALCONSTANTS] section!");
 }
 
 // static

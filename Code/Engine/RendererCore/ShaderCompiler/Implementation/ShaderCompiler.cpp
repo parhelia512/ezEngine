@@ -270,6 +270,9 @@ ezResult ezShaderCompiler::CompileShaderPermutationForPlatforms(ezStringView sFi
   ezUInt32 uiFirstShaderLine = 0;
   ezStringView sShaderSource = Sections.GetSectionContent(ezShaderHelper::ezShaderSections::SHADER, uiFirstShaderLine);
 
+  ezUInt32 uiFirstMaterialConstantsLine = 0;
+  ezStringView sMaterialConstantsSource = Sections.GetSectionContent(ezShaderHelper::ezShaderSections::MATERIALCONSTANTS, uiFirstMaterialConstantsLine);
+
   for (ezUInt32 stage = ezGALShaderStage::VertexShader; stage < ezGALShaderStage::ENUM_COUNT; ++stage)
   {
     ezStringView sStageSource = Sections.GetSectionContent(ezShaderHelper::ezShaderSections::VERTEXSHADER + stage, uiFirstLine);
@@ -278,6 +281,12 @@ ezResult ezShaderCompiler::CompileShaderPermutationForPlatforms(ezStringView sFi
     if (!sStageSource.IsEmpty())
     {
       sTemp.Clear();
+
+      // prepend material constants section if there is any
+      if (!sMaterialConstantsSource.IsEmpty())
+      {
+        sTemp.AppendFormat("#line {0}\n{1}", uiFirstMaterialConstantsLine, sMaterialConstantsSource);
+      }
 
       // prepend common shader section if there is any
       if (!sShaderSource.IsEmpty())

@@ -20,10 +20,9 @@ VERTEX_SHADER_RENDER_TARGET_ARRAY_INDEX
 
 WireFrame = true
 
-[SHADER]
+[MATERIALCONSTANTS]
 
 #include <Shaders/Common/GlobalConstants.h>
-
 CONSTANT_BUFFER(ezMaterialConstants, 1)
 {
   COLOR4F(BaseColor);

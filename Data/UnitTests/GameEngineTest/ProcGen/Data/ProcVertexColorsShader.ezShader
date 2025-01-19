@@ -66,8 +66,10 @@ float RoughnessValue @Default(0.7) @Clamp(0.0, 1.0);
   #define USE_DEBUG_INTERPOLATOR
 #endif
 
-#include <Shaders/Common/GlobalConstants.h>
 
+[MATERIALCONSTANTS]
+
+#include <Shaders/Common/GlobalConstants.h>
 // The values of the variables in the MATERIALPARAMETER section are written to this constant buffer.
 // The constant buffer is available to all shader stages and these variables
 // can be read anywhere like global variables.

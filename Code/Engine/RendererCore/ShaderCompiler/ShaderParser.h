@@ -44,7 +44,7 @@ public:
 
   static void ParsePermutationSection(ezStringView sPermutationSection, ezDynamicArray<ezHashedString>& out_permVars, ezDynamicArray<ezPermutationVar>& out_fixedPermVars);
 
-  static ezStatus ParseShaderSection(ezStringView sShaderSection, ezSharedPtr<ezShaderConstantBufferLayout>& out_pMaterialConstantBufferLayout);
+  static ezStatus ParseMaterialConstantsSection(ezStringView sMaterialConstantsSection, ezSharedPtr<ezShaderConstantBufferLayout>& out_pMaterialConstantBufferLayout);
 
   static void ParsePermutationVarConfig(ezStringView sPermutationVarConfig, ezVariant& out_defaultValue, EnumDefinition& out_enumDefinition);
 

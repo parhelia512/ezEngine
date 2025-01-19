@@ -30,10 +30,9 @@ Color BaseColor @Default(Color(1.0, 1.0, 1.0));
 
 DepthWrite = false
 
-[SHADER]
+[MATERIALCONSTANTS]
 
 #include <Shaders/Common/GlobalConstants.h>
-
 CONSTANT_BUFFER(ezMaterialConstants, 1)
 {
   COLOR4F(BaseColor);

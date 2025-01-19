@@ -7,10 +7,9 @@ ALL
 DepthTest = false
 CullMode = CullMode_None
 
-[SHADER]
+[MATERIALCONSTANTS]
 
 #include <Shaders/Common/GlobalConstants.h>
-
 CONSTANT_BUFFER(ezMaterialConstants, 0)
 {
   MAT4(ViewMatrix);

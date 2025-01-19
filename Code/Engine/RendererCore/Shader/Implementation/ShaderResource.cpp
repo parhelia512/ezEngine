@@ -59,8 +59,11 @@ ezResourceLoadDesc ezShaderResource::UpdateContent(ezStreamReader* stream)
   ezShaderParser::ParsePermutationSection(sPermutations, m_PermutationVarsUsed, fixedPermVars);
 
   uiFirstLine = 0;
-  ezStringView sShader = Sections.GetSectionContent(ezShaderHelper::ezShaderSections::SHADER, uiFirstLine);
-  ezShaderParser::ParseShaderSection(sShader, m_pLayout).IgnoreResult();
+  ezStringView sShader = Sections.GetSectionContent(ezShaderHelper::ezShaderSections::MATERIALCONSTANTS, uiFirstLine);
+  if (!sShader.IsEmpty())
+  {
+    ezShaderParser::ParseMaterialConstantsSection(sShader, m_pLayout).IgnoreResult();
+  }
 
   res.m_State = ezResourceState::Loaded;
   m_bShaderResourceIsValid = true;

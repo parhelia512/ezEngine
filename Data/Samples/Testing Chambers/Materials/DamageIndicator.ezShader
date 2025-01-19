@@ -34,8 +34,10 @@ RenderDataCategory = SimpleTransparent;
 [SHADER]
 #define USE_TEXCOORD0
 
-#include <Shaders/Common/GlobalConstants.h>
 
+[MATERIALCONSTANTS]
+
+#include <Shaders/Common/GlobalConstants.h>
 CONSTANT_BUFFER(ezMaterialConstants, 1)
 {
   COLOR4F(BaseColor);

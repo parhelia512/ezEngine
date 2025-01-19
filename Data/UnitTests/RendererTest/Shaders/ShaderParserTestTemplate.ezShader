@@ -5,9 +5,9 @@ ALL
 
 [RENDERSTATE]
 
-[SHADER]
+[MATERIALCONSTANTS]
 
-{{SHADER_SECTION}}
+{{MATERIAL_SECTION}}
 
 [VERTEXSHADER]
 
@@ -38,6 +38,6 @@ struct VS_OUT
 
 float4 main(VS_OUT a) : SV_Target
 {
-  return float4({{SHADER_USAGE}}, 0.5, 0.0, 1.0);
+  return float4({{MATERIAL_USAGE}}, 0.5, 0.0, 1.0);
 }
 

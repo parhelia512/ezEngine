@@ -57,8 +57,9 @@ int KrautTreeMode; // 0 == regular mesh, 1 == frond, 2 == leaf, 3 == static impo
   #define USE_DEBUG_INTERPOLATOR
 #endif
 
-#include <Shaders/Common/GlobalConstants.h>
+[MATERIALCONSTANTS]
 
+#include <Shaders/Common/GlobalConstants.h>
 CONSTANT_BUFFER(ezMaterialConstants, 1)
 {
   COLOR4F(VariationColor);

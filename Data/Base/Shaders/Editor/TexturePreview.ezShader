@@ -20,8 +20,10 @@ CullMode = CullMode_None
 
 #define USE_TEXCOORD0
 #define USE_WORLDPOS
-#include <Shaders/Common/GlobalConstants.h>
 
+[MATERIALCONSTANTS]
+
+#include <Shaders/Common/GlobalConstants.h>
 CONSTANT_BUFFER(ezMaterialConstants, 1)
 {
   INT1(ShowChannelMode);

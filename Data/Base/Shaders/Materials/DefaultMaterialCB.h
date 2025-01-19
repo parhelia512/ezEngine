@@ -1,7 +1,6 @@
-#include <Do not include DefaultMaterialCB.h, inline the code below in the [SHADER] section of your material>
+#include <Do not include DefaultMaterialCB.h, inline the code below in the [MATERIALCONSTANTS] section of your material>
 
 #include <Shaders/Common/GlobalConstants.h>
-
 CONSTANT_BUFFER(ezMaterialConstants, 1)
 {
   COLOR4F(BaseColor);

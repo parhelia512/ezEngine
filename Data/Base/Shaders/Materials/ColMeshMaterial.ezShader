@@ -19,8 +19,10 @@ CAMERA_MODE
 
 [SHADER]
 
-#include <Shaders/Common/GlobalConstants.h>
 
+[MATERIALCONSTANTS]
+
+#include <Shaders/Common/GlobalConstants.h>
 CONSTANT_BUFFER(ezMaterialConstants, 1)
 {
   COLOR4F(BaseColor);

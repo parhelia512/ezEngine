@@ -18,10 +18,9 @@ VERTEX_SHADER_RENDER_TARGET_ARRAY_INDEX
 
 #include <Shaders/Materials/MaterialState.h>
 
-[SHADER]
+[MATERIALCONSTANTS]
 
 #include <Shaders/Common/GlobalConstants.h>
-
 CONSTANT_BUFFER(ezMaterialConstants, 1)
 {
   COLOR4F(BaseColor);

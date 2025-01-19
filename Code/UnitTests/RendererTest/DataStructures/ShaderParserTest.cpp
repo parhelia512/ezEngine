@@ -68,8 +68,8 @@ EZ_CREATE_SIMPLE_RENDERER_TEST(DataStructures, ShaderParser)
     }
 
     // Insert shaderSection
-    sEzFileContent.ReplaceFirst("{{SHADER_SECTION}}", shaderSection);
-    sEzFileContent.ReplaceFirst("{{SHADER_USAGE}}", "BaseColor.r");
+    sEzFileContent.ReplaceFirst("{{MATERIAL_SECTION}}", shaderSection);
+    sEzFileContent.ReplaceFirst("{{MATERIAL_USAGE}}", "BaseColor.r");
 
     // Write temp shader
     ezStringBuilder sTempFile = ":imgout/Temp.ezShader";
