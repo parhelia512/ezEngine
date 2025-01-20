@@ -279,7 +279,16 @@ void ezQtPropertyEditorDoubleSpinboxWidget::InternalSetValue(const ezVariant& va
 {
   ezQtScopedBlockSignals bs(m_pWidget[0], m_pWidget[1], m_pWidget[2], m_pWidget[3]);
 
-  m_OriginalType = value.GetType();
+  m_OriginalType = GetProperty()->GetSpecificType()->GetVariantType();
+  if (m_OriginalType == ezVariantType::Invalid)
+  {
+    m_OriginalType = value.GetType();
+  }
+
+  if (m_OriginalType == ezVariantType::Invalid)
+  {
+    m_OriginalType = ezVariantType::Double;
+  }
 
   if (value.IsValid())
   {
@@ -762,7 +771,18 @@ void ezQtPropertyEditorIntSpinboxWidget::InternalSetValue(const ezVariant& value
 {
   ezQtScopedBlockSignals bs(m_pWidget[0], m_pWidget[1], m_pWidget[2], m_pWidget[3], m_pSlider);
 
-  m_OriginalType = value.GetType();
+  auto prop = GetProperty();
+  const ezRTTI* type = prop->GetSpecificType();
+  m_OriginalType = type->GetVariantType();
+  if (m_OriginalType == ezVariantType::Invalid)
+  {
+    m_OriginalType = value.GetType();
+  }
+
+  if (m_OriginalType == ezVariantType::Invalid)
+  {
+    m_OriginalType = ezVariantType::Int32;
+  }
 
   switch (m_iNumComponents)
   {
@@ -1034,7 +1054,17 @@ void ezQtPropertyEditorSliderWidget::InternalSetValue(const ezVariant& value)
 {
   ezQtScopedBlockSignals bs(m_pSlider);
 
-  m_OriginalType = value.GetType();
+  m_OriginalType = GetProperty()->GetSpecificType()->GetVariantType();
+
+  if (m_OriginalType == ezVariantType::Invalid)
+  {
+    m_OriginalType = value.GetType();
+  }
+
+  if (m_OriginalType == ezVariantType::Invalid)
+  {
+    m_OriginalType = ezVariantType::Double;
+  }
 
   m_pSlider->SetValue(value.ConvertTo<double>());
 }
@@ -1223,7 +1253,17 @@ void ezQtPropertyEditorLineEditWidget::InternalSetValue(const ezVariant& value)
 {
   ezQtScopedBlockSignals b(m_pWidget);
 
-  m_OriginalType = value.GetType();
+  m_OriginalType = GetProperty()->GetSpecificType()->GetVariantType();
+
+  if (m_OriginalType == ezVariantType::Invalid)
+  {
+    m_OriginalType = value.GetType();
+  }
+
+  if (m_OriginalType == ezVariantType::Invalid)
+  {
+    m_OriginalType = ezVariantType::String;
+  }
 
   if (!value.IsValid())
   {
