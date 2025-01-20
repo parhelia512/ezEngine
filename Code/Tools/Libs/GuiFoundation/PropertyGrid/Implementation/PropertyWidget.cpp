@@ -1273,6 +1273,12 @@ void ezQtColorButtonWidget::SetColor(const ezVariant& color)
   }
   else
   {
+    const ezColorGammaUB col = ezColor::LightGrey;
+
+    QColor qol;
+    qol.setRgb(col.r, col.g, col.b, col.a);
+
+    m_Pal.setBrush(QPalette::Window, QBrush(qol, Qt::DiagCrossPattern));
     setPalette(m_Pal);
   }
 }
@@ -1306,8 +1312,6 @@ QSize ezQtColorButtonWidget::minimumSizeHint() const
 ezQtPropertyEditorColorWidget::ezQtPropertyEditorColorWidget()
   : ezQtStandardPropertyWidget()
 {
-  m_bExposeAlpha = false;
-
   m_pLayout = new QHBoxLayout(this);
   m_pLayout->setContentsMargins(0, 0, 0, 0);
   setLayout(m_pLayout);
@@ -1335,27 +1339,27 @@ void ezQtPropertyEditorColorWidget::InternalSetValue(const ezVariant& value)
 
 void ezQtPropertyEditorColorWidget::on_Button_triggered()
 {
-  Broadcast(ezPropertyEvent::Type::BeginTemporary);
+  if (GetProperty() && GetProperty()->GetSpecificType() == ezGetStaticRTTI<ezColor>())
+  {
+    m_bIsHDR = true;
+  }
 
-  bool bShowHDR = false;
+  Broadcast(ezPropertyEvent::Type::BeginTemporary);
 
   ezColor temp = ezColor::White;
   if (m_OriginalValue.IsValid())
   {
-    bShowHDR = m_OriginalValue.IsA<ezColor>();
-
     temp = m_OriginalValue.ConvertTo<ezColor>();
   }
 
-  ezQtUiServices::GetSingleton()->ShowColorDialog(
-    temp, m_bExposeAlpha, bShowHDR, this, SLOT(on_CurrentColor_changed(const ezColor&)), SLOT(on_Color_accepted()), SLOT(on_Color_reset()));
+  ezQtUiServices::GetSingleton()->ShowColorDialog(temp, m_bExposeAlpha, m_bIsHDR, this, SLOT(on_CurrentColor_changed(const ezColor&)), SLOT(on_Color_accepted()), SLOT(on_Color_reset()));
 }
 
 void ezQtPropertyEditorColorWidget::on_CurrentColor_changed(const ezColor& color)
 {
   ezVariant col;
 
-  if (m_OriginalValue.IsA<ezColorGammaUB>())
+  if (!m_bIsHDR)
   {
     // ezVariant does not down-cast to ezColorGammaUB automatically
     col = ezColorGammaUB(color);
