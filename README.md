@@ -2,9 +2,11 @@
 
 ezEngine is an open source C++ game engine.
 
-Visit <http://ezEngine.net> for documentation, samples and detailed build instructions.
+Watch the trailer below for a quick feature overview:
 
 [![ezEngine Trailer](https://img.youtube.com/vi/S342o8ZmPdA/0.jpg)](https://www.youtube.com/watch?v=S342o8ZmPdA)
+
+Visit <http://ezEngine.net> for documentation, samples and detailed build instructions.
 
 ![ezEngine Screenshot](https://ezengine.net/pages/samples/media/showcase-1.jpg)
 
