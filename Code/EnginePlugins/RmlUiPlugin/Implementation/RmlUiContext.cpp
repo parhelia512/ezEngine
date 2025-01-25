@@ -70,7 +70,11 @@ ezResult ezRmlUiContext::ReloadDocumentFromResource(const ezRmlUiResourceHandle&
   Rml::Factory::ClearStyleSheetCache();
   Rml::Factory::ClearTemplateCache();
 
-  return LoadDocumentFromResource(hResource);
+  EZ_SUCCEED_OR_RETURN(LoadDocumentFromResource(hResource));
+
+  RequestNextUpdate(0.0);
+
+  return EZ_SUCCESS;
 }
 
 void ezRmlUiContext::ShowDocument()

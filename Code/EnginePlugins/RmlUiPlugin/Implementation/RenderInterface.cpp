@@ -392,11 +392,10 @@ namespace ezRmlUiInternal
     ezRenderContext* pRenderContext = ezRenderContext::GetDefaultInstance();
     ezGPUResourcePool* pGpuResourcePool = ezGPUResourcePool::GetDefaultInstance();
 
-    if (pRenderContext->GetAllowAsyncShaderLoading())
-    {
-      // Force load the shader, otherwise we could end up rendering nothing when lazy update is enabled on the context
-      ezResourceLock<ezShaderResource> pShader(m_hShader, ezResourceAcquireMode::BlockTillLoaded);
-    }
+    // Force shader loading, otherwise we could end up rendering nothing when lazy update is enabled on the context
+    bool bAllowAsyncShaderLoading = pRenderContext->GetAllowAsyncShaderLoading();
+    pRenderContext->SetAllowAsyncShaderLoading(false);
+    EZ_SCOPE_EXIT(pRenderContext->SetAllowAsyncShaderLoading(bAllowAsyncShaderLoading));
 
     const ezGALResourceFormat::Enum tempTargetFormat = ezGALResourceFormat::RGBAUByteNormalized;
     const ezGALResourceFormat::Enum tempStencilFormat = ezGALResourceFormat::D24S8;
