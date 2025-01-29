@@ -329,7 +329,7 @@ namespace
 
     const ezUInt32 uiStartSlot = 4;
 
-    ezUniquePtr<ezMessage> pMessage = userData.m_pType->GetAllocator()->Allocate<ezMessage>();
+    ezUniquePtr<ezMessage> pMessage = userData.m_pType->GetAllocator()->Allocate<ezMessage>(ezFrameAllocator::GetCurrentAllocator());
     for (ezUInt32 i = 0; i < userData.m_uiNumProperties; ++i)
     {
       auto pProp = userData.m_Properties[i];
