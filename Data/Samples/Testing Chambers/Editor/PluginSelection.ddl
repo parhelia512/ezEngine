@@ -42,12 +42,6 @@ PluginState
 }
 PluginState
 {
-	string %ID{"Recast"}
-	bool %Selected{true}
-	bool %LoadCopy{false}
-}
-PluginState
-{
 	string %ID{"RmlUi"}
 	bool %Selected{true}
 	bool %LoadCopy{false}

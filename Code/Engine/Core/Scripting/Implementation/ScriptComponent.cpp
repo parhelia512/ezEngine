@@ -165,6 +165,24 @@ ezTime ezScriptComponent::GetUpdateInterval() const
   return m_UpdateInterval;
 }
 
+void ezScriptComponent::BroadcastEventMsg(ezEventMessage& ref_msg)
+{
+  const ezRTTI* pType = ref_msg.GetDynamicRTTI();
+
+  for (auto& sender : m_EventSenders)
+  {
+    if (sender.m_pMsgType == pType)
+    {
+      sender.m_Sender.SendEventMessage(ref_msg, this, GetOwner()->GetParent());
+      return;
+    }
+  }
+
+  auto& sender = m_EventSenders.ExpandAndGetRef();
+  sender.m_pMsgType = pType;
+  sender.m_Sender.SendEventMessage(ref_msg, this, GetOwner()->GetParent());
+}
+
 const ezRangeView<const char*, ezUInt32> ezScriptComponent::GetParameters() const
 {
   return ezRangeView<const char*, ezUInt32>([]() -> ezUInt32
