@@ -342,6 +342,7 @@ ezParticleSystemInstance::ezParticleSystemInstance()
 
 void ezParticleSystemInstance::Construct(ezUInt32 uiMaxParticles, ezWorld* pWorld, ezParticleEffectInstance* pOwnerEffect, float fSpawnCountMultiplier)
 {
+  m_BoundingVolume = ezBoundingBoxSphere::MakeInvalid();
   m_Transform.SetIdentity();
   m_pOwnerEffect = pOwnerEffect;
   m_bEmitterEnabled = true;
