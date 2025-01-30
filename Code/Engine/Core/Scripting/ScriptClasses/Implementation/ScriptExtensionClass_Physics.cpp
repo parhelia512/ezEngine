@@ -10,9 +10,10 @@ EZ_BEGIN_STATIC_REFLECTED_TYPE(ezScriptExtensionClass_Physics, ezNoBase, 1, ezRT
   EZ_BEGIN_FUNCTIONS
   {
     EZ_SCRIPT_FUNCTION_PROPERTY(GetGravity, In, "World"),
-    EZ_SCRIPT_FUNCTION_PROPERTY(Raycast, Out, "HitPosition", Out, "HitNormal", Out, "HitObject", In, "World", In, "Start", In, "Direction", In, "Distance", In, "CollisionLayer", In, "ShapeTypes")->AddAttributes(
+    EZ_SCRIPT_FUNCTION_PROPERTY(Raycast, Out, "HitPosition", Out, "HitNormal", Out, "HitObject", In, "World", In, "Start", In, "Direction", In, "Distance", In, "CollisionLayer", In, "ShapeTypes", In, "IgnoreObjectID")->AddAttributes(
       new ezFunctionArgumentAttributes(7, new ezDynamicEnumAttribute("PhysicsCollisionLayer")),
-      new ezFunctionArgumentAttributes(8, new ezDefaultValueAttribute((ezInt32)ezPhysicsShapeType::Static | (ezInt32)ezPhysicsShapeType::Dynamic))),
+      new ezFunctionArgumentAttributes(8, new ezDefaultValueAttribute((ezInt32)ezPhysicsShapeType::Static | (ezInt32)ezPhysicsShapeType::Dynamic)),
+      new ezFunctionArgumentAttributes(9, new ezDefaultValueAttribute((ezInt32)ezInvalidIndex))),
 
     EZ_SCRIPT_FUNCTION_PROPERTY(OverlapTestSphere, In, "World", In, "Radius", In, "Position", In, "CollisionLayer", In, "ShapeTypes")->AddAttributes(
       new ezFunctionArgumentAttributes(3, new ezDynamicEnumAttribute("PhysicsCollisionLayer")),
@@ -50,7 +51,7 @@ ezVec3 ezScriptExtensionClass_Physics::GetGravity(ezWorld* pWorld)
   return ezVec3::MakeZero();
 }
 
-bool ezScriptExtensionClass_Physics::Raycast(ezVec3& out_vHitPosition, ezVec3& out_vHitNormal, ezGameObjectHandle& out_hHitObject, ezWorld* pWorld, const ezVec3& vStart, const ezVec3& vDirection, float fDistance, ezUInt8 uiCollisionLayer, ezBitflags<ezPhysicsShapeType> shapeTypes /*= ezPhysicsShapeType::Static | ezPhysicsShapeType::Dynamic*/)
+bool ezScriptExtensionClass_Physics::Raycast(ezVec3& out_vHitPosition, ezVec3& out_vHitNormal, ezGameObjectHandle& out_hHitObject, ezWorld* pWorld, const ezVec3& vStart, const ezVec3& vDirection, float fDistance, ezUInt8 uiCollisionLayer, ezBitflags<ezPhysicsShapeType> shapeTypes /*= ezPhysicsShapeType::Static | ezPhysicsShapeType::Dynamic*/, ezUInt32 uiIgnoreObjectID)
 {
   if (auto pModule = pWorld->GetModuleReadOnly<ezPhysicsWorldModuleInterface>())
   {
@@ -58,6 +59,8 @@ bool ezScriptExtensionClass_Physics::Raycast(ezVec3& out_vHitPosition, ezVec3& o
     ezPhysicsQueryParameters params;
     params.m_ShapeTypes = shapeTypes;
     params.m_uiCollisionLayer = uiCollisionLayer;
+    params.m_uiIgnoreObjectFilterID = uiIgnoreObjectID;
+    params.m_bIgnoreInitialOverlap = true;
 
     if (pModule->Raycast(res, vStart, vDirection, fDistance, params))
     {

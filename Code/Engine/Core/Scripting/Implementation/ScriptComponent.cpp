@@ -19,6 +19,7 @@ EZ_BEGIN_COMPONENT_TYPE(ezScriptComponent, 1, ezComponentMode::Static)
   {
     EZ_SCRIPT_FUNCTION_PROPERTY(SetScriptVariable, In, "Name", In, "Value"),
     EZ_SCRIPT_FUNCTION_PROPERTY(GetScriptVariable, In, "Name"),
+    EZ_SCRIPT_FUNCTION_PROPERTY(SetUpdateInterval, In, "interval"),
   }
   EZ_END_FUNCTIONS;
   EZ_BEGIN_ATTRIBUTES
