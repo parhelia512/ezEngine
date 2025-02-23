@@ -100,6 +100,8 @@ public:
     MissingMaterial
   };
 
+  using ezMaterialId = ezGenericId<24, 8>;
+
   /// \brief Returns the default material file name for the given type (materials in Data/Base/Materials/BaseMaterials).
   static const char* GetDefaultMaterialFileName(DefaultMaterialType materialType);
 
@@ -108,52 +110,54 @@ private:
   virtual ezResourceLoadDesc UpdateContent(ezStreamReader* Stream) override;
   virtual void UpdateMemoryUsage(MemoryUsage& out_NewMemoryUsage) override;
 
-private:
-  ezMaterialResourceDescriptor m_mOriginalDesc; // stores the state at loading, such that SetParameter etc. calls can be reset later
-  ezMaterialResourceDescriptor m_mDesc;
+public:
+  struct DirtyFlags
+   {
+     using StorageType = ezUInt8;
 
+     enum Enum
+     {
+       Parameter = EZ_BIT(0),
+       Texture2D = EZ_BIT(1),
+       TextureCube = EZ_BIT(2),
+       PermutationVar = EZ_BIT(3),
+       ShaderAndId = EZ_BIT(4),
+       ResourceReset = Parameter | Texture2D | TextureCube | PermutationVar,
+       ResourceCreation = Parameter | Texture2D | TextureCube | PermutationVar | ShaderAndId,
+       Default = 0
+     };
+
+     struct Bits
+     {
+       StorageType Parameter : 1;
+       StorageType Texture2D : 1;
+       StorageType TextureCube : 1;
+       StorageType PermutationVar : 1;
+       StorageType ShaderAndId : 1;
+     };
+   };
+
+ private:
   friend class ezRenderContext;
-  EZ_MAKE_SUBSYSTEM_STARTUP_FRIEND(RendererCore, MaterialResource);
+  friend class ezMaterialManager;
 
   ezEvent<const ezMaterialResource*, ezMutex> m_ModifiedEvent;
+
   void OnBaseMaterialModified(const ezMaterialResource* pModifiedMaterial);
-  void OnResourceEvent(const ezResourceEvent& resourceEvent);
-
   void AddPermutationVar(ezStringView sName, ezStringView sValue);
+  void SetModified(DirtyFlags::Enum flag);
+  void FlattenHierarchy();
 
-  ezAtomicInteger32 m_iLastModified;
-  ezAtomicInteger32 m_iLastConstantsModified;
-  ezInt32 m_iLastUpdated;
-  ezInt32 m_iLastConstantsUpdated;
+private:
+  ezMaterialResourceDescriptor m_mOriginalDesc; // stores the state at loading, such that SetParameter etc. calls can be reset later
 
-  bool IsModified();
-  bool AreConstantsModified();
+  // Dynamic data
+  ezMaterialResourceDescriptor m_mDesc; // Current desc of the material. Contains any changes done after loading.
+  ezBitflags<DirtyFlags> m_DirtyFlags; // Flags indicating what has changed in m_mDesc this frame.
 
-  void UpdateConstantBuffer(ezShaderPermutationResource* pShaderPermutation);
-
-  ezConstantBufferStorageHandle m_hConstantBufferStorage;
-
-  struct CachedValues
-  {
-    ezShaderResourceHandle m_hShader;
-    ezHashTable<ezHashedString, ezHashedString> m_PermutationVars;
-    ezHashTable<ezHashedString, ezVariant> m_Parameters;
-    ezHashTable<ezHashedString, ezTexture2DResourceHandle> m_Texture2DBindings;
-    ezHashTable<ezHashedString, ezTextureCubeResourceHandle> m_TextureCubeBindings;
-    ezRenderData::Category m_RenderDataCategory;
-
-    void Reset();
-  };
-
-  ezUInt32 m_uiCacheIndex;
-  CachedValues* m_pCachedValues;
-
-  CachedValues* GetOrUpdateCachedValues();
-  static CachedValues* AllocateCache(ezUInt32& inout_uiCacheIndex);
-  static void DeallocateCache(ezUInt32 uiCacheIndex);
-
-  ezMutex m_UpdateCacheMutex;
-  static ezDeque<ezMaterialResource::CachedValues> s_CachedValues;
-
-  static void ClearCache();
+  // ezMaterialManager registration
+  ezShaderResourceHandle m_hShader;
+  ezMaterialId m_MaterialId;
 };
+
+EZ_DECLARE_FLAGS_OPERATORS(ezMaterialResource::DirtyFlags);

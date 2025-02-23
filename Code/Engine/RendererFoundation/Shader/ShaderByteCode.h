@@ -42,7 +42,7 @@ struct EZ_RENDERERFOUNDATION_DLL ezShaderConstant
 
   static ezUInt32 s_TypeSize[Type::ENUM_COUNT];
 
-  void CopyDataFormVariant(ezUInt8* pDest, ezVariant* pValue) const;
+  void CopyDataFormVariant(ezUInt8* pDest, const ezVariant* pValue) const;
 
   ezHashedString m_sName;
   ezEnum<Type> m_Type;
@@ -57,6 +57,8 @@ class EZ_RENDERERFOUNDATION_DLL ezShaderConstantBufferLayout : public ezRefCount
 public:
   ezUInt32 m_uiTotalSize = 0;
   ezHybridArray<ezShaderConstant, 16> m_Constants;
+  bool operator==(const ezShaderConstantBufferLayout& rhs) const;
+  EZ_ADD_DEFAULT_OPERATOR_NOTEQUAL(const ezShaderConstantBufferLayout&);
 };
 
 /// \brief Shader reflection of the vertex shader input.
