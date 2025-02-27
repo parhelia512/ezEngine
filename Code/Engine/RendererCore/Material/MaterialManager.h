@@ -122,8 +122,9 @@ private:
 private:
   // Extract these materials during extraction phase.
   ezMutex m_ExtractionMutex;
-  ezDynamicArray<MaterialRegistration> m_RemovedMaterials;
+  ezHashSet<ezMaterialResourceHandle> m_AddedMaterials;
   ezHashSet<ezMaterialResourceHandle> m_ChangedMaterials;
+  ezDynamicArray<MaterialRegistration> m_RemovedMaterials;
 
   // Extraction result created by frame allocator
   ezUniquePtr<PendingChanges> m_pPendingChanges;

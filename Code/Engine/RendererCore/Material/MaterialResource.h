@@ -122,8 +122,9 @@ public:
        TextureCube = EZ_BIT(2),
        PermutationVar = EZ_BIT(3),
        ShaderAndId = EZ_BIT(4),
-       ResourceReset = Parameter | Texture2D | TextureCube | PermutationVar,
-       ResourceCreation = Parameter | Texture2D | TextureCube | PermutationVar | ShaderAndId,
+       FlattenHierarchy = EZ_BIT(5),
+       ResourceReset = Parameter | Texture2D | TextureCube | PermutationVar | FlattenHierarchy,
+       ResourceCreation = ResourceReset | ShaderAndId,
        Default = 0
      };
 
@@ -134,6 +135,7 @@ public:
        StorageType TextureCube : 1;
        StorageType PermutationVar : 1;
        StorageType ShaderAndId : 1;
+       StorageType FlattenHierarchy : 1;
      };
    };
 
@@ -153,6 +155,7 @@ private:
 
   // Dynamic data
   ezMaterialResourceDescriptor m_mDesc; // Current desc of the material. Contains any changes done after loading.
+  ezMaterialResourceDescriptor m_mFlattenedDesc; // Contains all base materials and m_mDesc flattened into the actual runtime config.
   ezBitflags<DirtyFlags> m_DirtyFlags; // Flags indicating what has changed in m_mDesc this frame.
 
   // ezMaterialManager registration

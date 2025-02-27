@@ -3,8 +3,8 @@
 #include <Foundation/Configuration/Startup.h>
 #include <RendererCore/Material/MaterialManager.h>
 #include <RendererCore/RenderWorld/RenderWorld.h>
-#include <RendererFoundation/Device/Device.h>
 #include <RendererFoundation/CommandEncoder/CommandEncoder.h>
+#include <RendererFoundation/Device/Device.h>
 
 EZ_IMPLEMENT_SINGLETON(ezMaterialManager);
 
@@ -101,6 +101,10 @@ void ezMaterialManager::MaterialModified(ezMaterialResourceHandle hMaterial)
 void ezMaterialManager::OnExtractionEvent(const ezRenderWorldExtractionEvent& e)
 {
   // ezUInt32 uiDataIndex = ezRenderWorld::GetDataIndexForExtraction();
+  if (e.m_Type != ezRenderWorldExtractionEvent::Type::BeginExtraction)
+    return;
+
+  EZ_ASSERT_DEBUG(m_pPendingChanges == nullptr, "OnRenderEvent should have been called to consume pending changes");
 
   EZ_LOCK(m_ExtractionMutex);
   m_pPendingChanges = EZ_NEW(ezFrameAllocator::GetCurrentAllocator(), PendingChanges);
@@ -112,6 +116,11 @@ void ezMaterialManager::OnExtractionEvent(const ezRenderWorldExtractionEvent& e)
   {
     ExtractedMaterial& extractedMaterial = m_pPendingChanges->m_ChangedMaterials[uiCurrentIndex];
     ezResourceLock<ezMaterialResource> pMaterial(hMaterial, ezResourceAcquireMode::BlockTillLoaded);
+    if (pMaterial->m_DirtyFlags.IsSet(ezMaterialResource::DirtyFlags::FlattenHierarchy))
+    {
+      pMaterial->FlattenHierarchy();
+    }
+
     extractedMaterial.m_hMaterial = hMaterial;
     extractedMaterial.m_hShader = pMaterial->m_mDesc.m_hShader;
     extractedMaterial.m_MaterialId = pMaterial->m_MaterialId;
@@ -148,6 +157,9 @@ void ezMaterialManager::OnRenderEvent(const ezRenderWorldRenderEvent& e)
 {
   // ezUInt32 uiDataIndex = ezRenderWorld::GetDataIndexForRendering();
   if (e.m_Type != ezRenderWorldRenderEvent::Type::BeginRender)
+    return;
+
+  if (m_pPendingChanges == nullptr)
     return;
 
   EZ_LOCK(m_MaterialShaderMutex);
@@ -354,14 +366,13 @@ void ezMaterialManager::MaterialShaderConstants::UpdateMaterial(ezMaterialResour
 {
   ezResourceLock<ezMaterialResource> pMaterial(hMaterial, ezResourceAcquireMode::PointerOnly);
   auto itMaterial = m_pParent->m_Materials.Find(pMaterial.GetPointer());
-  EZ_ASSERT_DEBUG(itMaterial.IsValid(), "Material handle should be valid");
-  MaterialData& md = itMaterial.Value();
-  if (!md.m_hShader.IsValid())
+  if (!itMaterial.IsValid() || itMaterial.Value().m_hShader.IsValid())
   {
     // As materials can be added at any time, we might have entries that were registered between extraction and rendering and will this be first extracted in the next frame. Ignore these.
     return;
   }
 
+  MaterialData& md = itMaterial.Value();
   ezArrayPtr<ezUInt8> data = m_ConstantBufferData.GetArrayPtr().GetSubArray(id.m_InstanceIndex * m_pLayout->m_uiTotalSize, m_pLayout->m_uiTotalSize);
   for (const auto& param : md.m_Parameters)
   {

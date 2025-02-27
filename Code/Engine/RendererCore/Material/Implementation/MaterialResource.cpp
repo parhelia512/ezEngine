@@ -22,7 +22,7 @@
 
 namespace
 {
-  template<typename Source, typename Target>
+  template <typename Source, typename Target>
   void CopyMaterialDesc(const Source& source, Target& target)
   {
     target.Clear();
@@ -32,7 +32,71 @@ namespace
       target.PushBack({entry.Key(), entry.Value()});
     }
   }
-}
+
+  template <typename Property>
+  struct SetNameHelper
+  {
+    EZ_ALWAYS_INLINE void SetName(Property& prop, const char* szName) { prop.m_Name.Assign(szName); }
+    EZ_ALWAYS_INLINE void SetName(Property& prop, ezHashedString sName) { prop.m_Name = sName; }
+  };
+
+  template <typename Value, typename Property, typename Name>
+  Value GetProperty(ezDynamicArray<Property>& properties, Name sName)
+  {
+    for (ezUInt32 i = 0; i < properties.GetCount(); ++i)
+    {
+      if (properties[i].m_Name == sName)
+      {
+        return properties[i].m_Value;
+      }
+    }
+    return {};
+  }
+
+  template <typename Property, typename Name, typename Value, typename NameLookup>
+  bool SetProperty(ezDynamicArray<Property>& properties, const Name& sName, const Value& value, const NameLookup& sNameLookup)
+  {
+    SetNameHelper<Property> setNameHelper;
+    ezUInt32 uiIndex = ezInvalidIndex;
+    for (ezUInt32 i = 0; i < properties.GetCount(); ++i)
+    {
+      if (properties[i].m_Name == sNameLookup)
+      {
+        uiIndex = i;
+        break;
+      }
+    }
+
+    if (value.IsValid())
+    {
+      if (uiIndex != ezInvalidIndex)
+      {
+        if (properties[uiIndex].m_Value == value)
+        {
+          return false;
+        }
+
+        properties[uiIndex].m_Value = value;
+      }
+      else
+      {
+        auto& param = properties.ExpandAndGetRef();
+        setNameHelper.SetName(param, sName);
+        param.m_Value = value;
+      }
+    }
+    else
+    {
+      if (uiIndex == ezInvalidIndex)
+      {
+        return false;
+      }
+
+      properties.RemoveAtAndSwap(uiIndex);
+    }
+    return true;
+  }
+} // namespace
 
 void ezMaterialResourceDescriptor::Clear()
 {
@@ -80,11 +144,12 @@ ezMaterialResource::~ezMaterialResource()
 
 ezHashedString ezMaterialResource::GetPermutationValue(const ezTempHashedString& sName)
 {
-  for (ezUInt32 i = 0; i < m_mDesc.m_PermutationVars.GetCount(); ++i)
+  FlattenHierarchy();
+  for (ezUInt32 i = 0; i < m_mFlattenedDesc.m_PermutationVars.GetCount(); ++i)
   {
-    if (m_mDesc.m_PermutationVars[i].m_sName == sName)
+    if (m_mFlattenedDesc.m_PermutationVars[i].m_sName == sName)
     {
-      return m_mDesc.m_PermutationVars[i].m_sValue;
+      return m_mFlattenedDesc.m_PermutationVars[i].m_sValue;
       break;
     }
   }
@@ -107,282 +172,84 @@ ezHashedString ezMaterialResource::GetSurface() const
 
 void ezMaterialResource::SetParameter(const ezHashedString& sName, const ezVariant& value)
 {
-  ezUInt32 uiIndex = ezInvalidIndex;
-  for (ezUInt32 i = 0; i < m_mDesc.m_Parameters.GetCount(); ++i)
+  FlattenHierarchy();
+  if (SetProperty(m_mDesc.m_Parameters, sName, value, sName) || SetProperty(m_mFlattenedDesc.m_Parameters, sName, value, sName))
   {
-    if (m_mDesc.m_Parameters[i].m_Name == sName)
-    {
-      uiIndex = i;
-      break;
-    }
+    SetModified(DirtyFlags::Parameter);
   }
-
-  if (value.IsValid())
-  {
-    if (uiIndex != ezInvalidIndex)
-    {
-      if (m_mDesc.m_Parameters[uiIndex].m_Value == value)
-      {
-        return;
-      }
-
-      m_mDesc.m_Parameters[uiIndex].m_Value = value;
-    }
-    else
-    {
-      auto& param = m_mDesc.m_Parameters.ExpandAndGetRef();
-      param.m_Name = sName;
-      param.m_Value = value;
-    }
-  }
-  else
-  {
-    if (uiIndex == ezInvalidIndex)
-    {
-      return;
-    }
-
-    m_mDesc.m_Parameters.RemoveAtAndSwap(uiIndex);
-  }
-
-  SetModified(DirtyFlags::Parameter);
 }
 
 void ezMaterialResource::SetParameter(const char* szName, const ezVariant& value)
 {
+  FlattenHierarchy();
   ezTempHashedString sName(szName);
-
-  ezUInt32 uiIndex = ezInvalidIndex;
-  for (ezUInt32 i = 0; i < m_mDesc.m_Parameters.GetCount(); ++i)
+  if (SetProperty(m_mDesc.m_Parameters, szName, value, sName) || SetProperty(m_mFlattenedDesc.m_Parameters, szName, value, sName))
   {
-    if (m_mDesc.m_Parameters[i].m_Name == sName)
-    {
-      uiIndex = i;
-      break;
-    }
+    SetModified(DirtyFlags::Parameter);
   }
-
-  if (value.IsValid())
-  {
-    if (uiIndex != ezInvalidIndex)
-    {
-      if (m_mDesc.m_Parameters[uiIndex].m_Value == value)
-      {
-        return;
-      }
-
-      m_mDesc.m_Parameters[uiIndex].m_Value = value;
-    }
-    else
-    {
-      auto& param = m_mDesc.m_Parameters.ExpandAndGetRef();
-      param.m_Name.Assign(szName);
-      param.m_Value = value;
-    }
-  }
-  else
-  {
-    if (uiIndex == ezInvalidIndex)
-    {
-      return;
-    }
-
-    m_mDesc.m_Parameters.RemoveAtAndSwap(uiIndex);
-  }
-
-  SetModified(DirtyFlags::Parameter);
 }
 
 ezVariant ezMaterialResource::GetParameter(const ezTempHashedString& sName)
 {
-  for (ezUInt32 i = 0; i < m_mDesc.m_Parameters.GetCount(); ++i)
-  {
-    if (m_mDesc.m_Parameters[i].m_Name == sName)
-    {
-      return m_mDesc.m_Parameters[i].m_Value;
-    }
-  }
-  return {};
+  FlattenHierarchy();
+  return GetProperty<ezVariant>(m_mDesc.m_Parameters, sName);
 }
 
 void ezMaterialResource::SetTexture2DBinding(const ezHashedString& sName, const ezTexture2DResourceHandle& value)
 {
-  ezUInt32 uiIndex = ezInvalidIndex;
-  for (ezUInt32 i = 0; i < m_mDesc.m_Texture2DBindings.GetCount(); ++i)
+  FlattenHierarchy();
+  if (SetProperty(m_mDesc.m_Texture2DBindings, sName, value, sName) || SetProperty(m_mFlattenedDesc.m_Texture2DBindings, sName, value, sName))
   {
-    if (m_mDesc.m_Texture2DBindings[i].m_Name == sName)
-    {
-      uiIndex = i;
-      break;
-    }
+    SetModified(DirtyFlags::Texture2D);
   }
-
-  if (value.IsValid())
-  {
-    if (uiIndex != ezInvalidIndex)
-    {
-      m_mDesc.m_Texture2DBindings[uiIndex].m_Value = value;
-    }
-    else
-    {
-      auto& binding = m_mDesc.m_Texture2DBindings.ExpandAndGetRef();
-      binding.m_Name = sName;
-      binding.m_Value = value;
-    }
-  }
-  else
-  {
-    if (uiIndex != ezInvalidIndex)
-    {
-      m_mDesc.m_Texture2DBindings.RemoveAtAndSwap(uiIndex);
-    }
-  }
-
-  SetModified(DirtyFlags::Texture2D);
 }
 
 void ezMaterialResource::SetTexture2DBinding(const char* szName, const ezTexture2DResourceHandle& value)
 {
+  FlattenHierarchy();
   ezTempHashedString sName(szName);
-
-  ezUInt32 uiIndex = ezInvalidIndex;
-  for (ezUInt32 i = 0; i < m_mDesc.m_Texture2DBindings.GetCount(); ++i)
+  if (SetProperty(m_mDesc.m_Texture2DBindings, szName, value, sName) || SetProperty(m_mFlattenedDesc.m_Texture2DBindings, szName, value, sName))
   {
-    if (m_mDesc.m_Texture2DBindings[i].m_Name == sName)
-    {
-      uiIndex = i;
-      break;
-    }
+    SetModified(DirtyFlags::Texture2D);
   }
-
-  if (value.IsValid())
-  {
-    if (uiIndex != ezInvalidIndex)
-    {
-      m_mDesc.m_Texture2DBindings[uiIndex].m_Value = value;
-    }
-    else
-    {
-      auto& binding = m_mDesc.m_Texture2DBindings.ExpandAndGetRef();
-      binding.m_Name.Assign(szName);
-      binding.m_Value = value;
-    }
-  }
-  else
-  {
-    if (uiIndex != ezInvalidIndex)
-    {
-      m_mDesc.m_Texture2DBindings.RemoveAtAndSwap(uiIndex);
-    }
-  }
-
-  SetModified(DirtyFlags::Texture2D);
 }
 
 ezTexture2DResourceHandle ezMaterialResource::GetTexture2DBinding(const ezTempHashedString& sName)
 {
-  for (ezUInt32 i = 0; i < m_mDesc.m_Texture2DBindings.GetCount(); ++i)
-  {
-    if (m_mDesc.m_Texture2DBindings[i].m_Name == sName)
-    {
-      return m_mDesc.m_Texture2DBindings[i].m_Value;
-    }
-  }
-
-  return ezTexture2DResourceHandle();
+  FlattenHierarchy();
+  return GetProperty<ezTexture2DResourceHandle>(m_mFlattenedDesc.m_Texture2DBindings, sName);
 }
-
 
 void ezMaterialResource::SetTextureCubeBinding(const ezHashedString& sName, const ezTextureCubeResourceHandle& value)
 {
-  ezUInt32 uiIndex = ezInvalidIndex;
-  for (ezUInt32 i = 0; i < m_mDesc.m_TextureCubeBindings.GetCount(); ++i)
+  FlattenHierarchy();
+  if (SetProperty(m_mDesc.m_TextureCubeBindings, sName, value, sName) || SetProperty(m_mFlattenedDesc.m_TextureCubeBindings, sName, value, sName))
   {
-    if (m_mDesc.m_TextureCubeBindings[i].m_Name == sName)
-    {
-      uiIndex = i;
-      break;
-    }
+    SetModified(DirtyFlags::TextureCube);
   }
-
-  if (value.IsValid())
-  {
-    if (uiIndex != ezInvalidIndex)
-    {
-      m_mDesc.m_TextureCubeBindings[uiIndex].m_Value = value;
-    }
-    else
-    {
-      auto& binding = m_mDesc.m_TextureCubeBindings.ExpandAndGetRef();
-      binding.m_Name = sName;
-      binding.m_Value = value;
-    }
-  }
-  else
-  {
-    if (uiIndex != ezInvalidIndex)
-    {
-      m_mDesc.m_TextureCubeBindings.RemoveAtAndSwap(uiIndex);
-    }
-  }
-
-  SetModified(DirtyFlags::TextureCube);
 }
 
 void ezMaterialResource::SetTextureCubeBinding(const char* szName, const ezTextureCubeResourceHandle& value)
 {
+  FlattenHierarchy();
   ezTempHashedString sName(szName);
-
-  ezUInt32 uiIndex = ezInvalidIndex;
-  for (ezUInt32 i = 0; i < m_mDesc.m_TextureCubeBindings.GetCount(); ++i)
+  if (SetProperty(m_mDesc.m_TextureCubeBindings, szName, value, sName) || SetProperty(m_mFlattenedDesc.m_TextureCubeBindings, szName, value, sName))
   {
-    if (m_mDesc.m_TextureCubeBindings[i].m_Name == sName)
-    {
-      uiIndex = i;
-      break;
-    }
+    SetModified(DirtyFlags::TextureCube);
   }
-
-  if (value.IsValid())
-  {
-    if (uiIndex != ezInvalidIndex)
-    {
-      m_mDesc.m_TextureCubeBindings[uiIndex].m_Value = value;
-    }
-    else
-    {
-      auto& binding = m_mDesc.m_TextureCubeBindings.ExpandAndGetRef();
-      binding.m_Name.Assign(szName);
-      binding.m_Value = value;
-    }
-  }
-  else
-  {
-    if (uiIndex != ezInvalidIndex)
-    {
-      m_mDesc.m_TextureCubeBindings.RemoveAtAndSwap(uiIndex);
-    }
-  }
-
-  SetModified(DirtyFlags::TextureCube);
 }
 
 ezTextureCubeResourceHandle ezMaterialResource::GetTextureCubeBinding(const ezTempHashedString& sName)
 {
-  for (ezUInt32 i = 0; i < m_mDesc.m_TextureCubeBindings.GetCount(); ++i)
-  {
-    if (m_mDesc.m_TextureCubeBindings[i].m_Name == sName)
-    {
-      return m_mDesc.m_TextureCubeBindings[i].m_Value;
-    }
-  }
-
-  return ezTextureCubeResourceHandle();
+  FlattenHierarchy();
+  return GetProperty<ezTextureCubeResourceHandle>(m_mFlattenedDesc.m_TextureCubeBindings, sName);
 }
 
 ezRenderData::Category ezMaterialResource::GetRenderDataCategory()
 {
-  return m_mDesc.m_RenderDataCategory;
+  FlattenHierarchy();
+  EZ_ASSERT_DEBUG(m_mFlattenedDesc.m_RenderDataCategory != ezInvalidRenderDataCategory, "");
+  return m_mFlattenedDesc.m_RenderDataCategory;
 }
 
 void ezMaterialResource::PreserveCurrentDesc()
@@ -437,6 +304,7 @@ ezResourceLoadDesc ezMaterialResource::UnloadData(Unload WhatToUnload)
 
   m_mDesc.Clear();
   m_mOriginalDesc.Clear();
+  m_mFlattenedDesc.Clear();
 
   ezResourceLoadDesc res;
   res.m_uiQualityLevelsDiscardable = 0;
@@ -450,6 +318,7 @@ ezResourceLoadDesc ezMaterialResource::UpdateContent(ezStreamReader* pOuterStrea
 {
   m_mDesc.Clear();
   m_mOriginalDesc.Clear();
+  m_mFlattenedDesc.Clear();
 
   ezResourceLoadDesc res;
   res.m_uiQualityLevelsDiscardable = 0;
@@ -771,8 +640,6 @@ ezResourceLoadDesc ezMaterialResource::UpdateContent(ezStreamReader* pOuterStrea
 
   m_mOriginalDesc = m_mDesc;
 
-  FlattenHierarchy();
-
   // We add the material right away instead of during extraction / begin rendering to make sure the materialId can be used right away.
   ezMaterialManager::GetSingleton()->MaterialUpdated(this);
   SetModified(DirtyFlags::ResourceCreation);
@@ -782,8 +649,9 @@ ezResourceLoadDesc ezMaterialResource::UpdateContent(ezStreamReader* pOuterStrea
 void ezMaterialResource::UpdateMemoryUsage(MemoryUsage& out_NewMemoryUsage)
 {
   out_NewMemoryUsage.m_uiMemoryCPU =
-    sizeof(ezMaterialResource) + (ezUInt32)(m_mDesc.m_PermutationVars.GetHeapMemoryUsage() + m_mDesc.m_Parameters.GetHeapMemoryUsage() + m_mDesc.m_Texture2DBindings.GetHeapMemoryUsage() + m_mDesc.m_TextureCubeBindings.GetHeapMemoryUsage() + m_mOriginalDesc.m_PermutationVars.GetHeapMemoryUsage() +
-                                            m_mOriginalDesc.m_Parameters.GetHeapMemoryUsage() + m_mOriginalDesc.m_Texture2DBindings.GetHeapMemoryUsage() + m_mOriginalDesc.m_TextureCubeBindings.GetHeapMemoryUsage());
+    sizeof(ezMaterialResource) + (ezUInt32)(m_mDesc.m_PermutationVars.GetHeapMemoryUsage() + m_mDesc.m_Parameters.GetHeapMemoryUsage() + m_mDesc.m_Texture2DBindings.GetHeapMemoryUsage() + m_mDesc.m_TextureCubeBindings.GetHeapMemoryUsage()
+      + m_mOriginalDesc.m_PermutationVars.GetHeapMemoryUsage() + m_mOriginalDesc.m_Parameters.GetHeapMemoryUsage() + m_mOriginalDesc.m_Texture2DBindings.GetHeapMemoryUsage() + m_mOriginalDesc.m_TextureCubeBindings.GetHeapMemoryUsage()
+      + m_mFlattenedDesc.m_PermutationVars.GetHeapMemoryUsage() + m_mFlattenedDesc.m_Parameters.GetHeapMemoryUsage() + m_mFlattenedDesc.m_Texture2DBindings.GetHeapMemoryUsage() + m_mFlattenedDesc.m_TextureCubeBindings.GetHeapMemoryUsage());
 
   out_NewMemoryUsage.m_uiMemoryGPU = 0;
 }
@@ -805,6 +673,8 @@ EZ_RESOURCE_IMPLEMENT_CREATEABLE(ezMaterialResource, ezMaterialResourceDescripto
     pBaseMaterial->m_ModifiedEvent.AddEventHandler(ezMakeDelegate(&ezMaterialResource::OnBaseMaterialModified, this));
   }
 
+  // We add the material right away instead of during extraction / begin rendering to make sure the materialId can be used right away.
+  ezMaterialManager::GetSingleton()->MaterialUpdated(this);
   SetModified(DirtyFlags::ResourceCreation);
   return res;
 }
@@ -830,6 +700,7 @@ void ezMaterialResource::AddPermutationVar(ezStringView sName, ezStringView sVal
     ezPermutationVar& pv = m_mDesc.m_PermutationVars.ExpandAndGetRef();
     pv.m_sName = sNameHashed;
     pv.m_sValue = sValueHashed;
+    m_mFlattenedDesc.m_PermutationVars.PushBack(pv);
   }
   SetModified(DirtyFlags::PermutationVar);
 }
@@ -848,6 +719,11 @@ void ezMaterialResource::SetModified(ezMaterialResource::DirtyFlags::Enum flag)
 
 void ezMaterialResource::FlattenHierarchy()
 {
+  if (!m_DirtyFlags.IsSet(DirtyFlags::FlattenHierarchy))
+    return;
+
+  m_DirtyFlags.Remove(DirtyFlags::FlattenHierarchy);
+
   ezHybridArray<ezMaterialResource*, 16> materialHierarchy;
   ezMaterialResource* pCurrentMaterial = this;
 
@@ -880,7 +756,7 @@ void ezMaterialResource::FlattenHierarchy()
     ezHashTable<ezHashedString, ezTextureCubeResourceHandle> m_TextureCubeBindings;
     ezRenderData::Category m_RenderDataCategory;
   } flattenedMaterial;
-  
+
   // set state of parent material first
   for (ezUInt32 i = materialHierarchy.GetCount(); i-- > 0;)
   {
@@ -940,14 +816,13 @@ void ezMaterialResource::FlattenHierarchy()
     }
   }
 
-  m_mDesc.m_hShader = flattenedMaterial.m_hShader;
-  m_mDesc.m_RenderDataCategory = flattenedMaterial.m_RenderDataCategory;
-  CopyMaterialDesc(flattenedMaterial.m_PermutationVars, m_mDesc.m_PermutationVars);
-  CopyMaterialDesc(flattenedMaterial.m_Parameters, m_mDesc.m_Parameters);
-  CopyMaterialDesc(flattenedMaterial.m_Texture2DBindings, m_mDesc.m_Texture2DBindings);
-  CopyMaterialDesc(flattenedMaterial.m_TextureCubeBindings, m_mDesc.m_TextureCubeBindings);
+  m_mFlattenedDesc.m_hShader = flattenedMaterial.m_hShader;
+  m_mFlattenedDesc.m_RenderDataCategory = flattenedMaterial.m_RenderDataCategory;
+  CopyMaterialDesc(flattenedMaterial.m_PermutationVars, m_mFlattenedDesc.m_PermutationVars);
+  CopyMaterialDesc(flattenedMaterial.m_Parameters, m_mFlattenedDesc.m_Parameters);
+  CopyMaterialDesc(flattenedMaterial.m_Texture2DBindings, m_mFlattenedDesc.m_Texture2DBindings);
+  CopyMaterialDesc(flattenedMaterial.m_TextureCubeBindings, m_mFlattenedDesc.m_TextureCubeBindings);
 }
-
 
 const ezMaterialResourceDescriptor& ezMaterialResource::GetCurrentDesc() const
 {
