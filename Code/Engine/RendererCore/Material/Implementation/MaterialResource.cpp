@@ -248,7 +248,7 @@ ezTextureCubeResourceHandle ezMaterialResource::GetTextureCubeBinding(const ezTe
 ezRenderData::Category ezMaterialResource::GetRenderDataCategory()
 {
   FlattenHierarchy();
-  EZ_ASSERT_DEBUG(m_mFlattenedDesc.m_RenderDataCategory != ezInvalidRenderDataCategory, "Category {} != {}", m_mDesc.m_RenderDataCategory.m_uiValue, ezInvalidRenderDataCategory.m_uiValue);
+  EZ_ASSERT_DEBUG(m_mFlattenedDesc.m_RenderDataCategory != ezInvalidRenderDataCategory, "Category {} != {}", m_mFlattenedDesc.m_RenderDataCategory.m_uiValue, ezInvalidRenderDataCategory.m_uiValue);
   return m_mFlattenedDesc.m_RenderDataCategory;
 }
 
@@ -719,6 +719,7 @@ void ezMaterialResource::SetModified(ezMaterialResource::DirtyFlags::Enum flag)
 
 void ezMaterialResource::FlattenHierarchy()
 {
+  EZ_LOCK(m_FlattenMutex);
   if (!m_DirtyFlags.IsSet(DirtyFlags::FlattenHierarchy))
     return;
 

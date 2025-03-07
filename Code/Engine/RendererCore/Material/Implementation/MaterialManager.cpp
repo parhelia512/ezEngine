@@ -29,24 +29,24 @@ EZ_BEGIN_SUBSYSTEM_DECLARATION(RendererCore, MaterialManager)
 EZ_END_SUBSYSTEM_DECLARATION;
 // clang-format on
 
-const ezMaterialManager::MaterialData& ezMaterialManager::GetMaterialData(const ezMaterialResource* pMaterial) const
+const ezMaterialManager::MaterialData* ezMaterialManager::GetMaterialData(const ezMaterialResource* pMaterial) const
 {
   auto it = m_Materials.Find(pMaterial);
-  EZ_ASSERT_DEV(it.IsValid(), "Loaded materials must always have a valid entry in m_Materials");
-  return it.Value();
+  //EZ_ASSERT_DEV(it.IsValid(), "Loaded materials must always have a valid entry in m_Materials");
+  return it.IsValid() ? &it.Value() : nullptr;
 }
 
 ezMaterialManager::ezMaterialManager()
   : m_SingletonRegistrar(this)
 {
   ezRenderWorld::GetExtractionEvent().AddEventHandler(ezMakeDelegate(&ezMaterialManager::OnExtractionEvent, this));
-  ezRenderWorld::GetRenderEvent().AddEventHandler(ezMakeDelegate(&ezMaterialManager::OnRenderEvent, this));
+  ezGALDevice::s_Events.AddEventHandler(ezMakeDelegate(&ezMaterialManager::OnRenderEvent, this));
 }
 
 ezMaterialManager::~ezMaterialManager()
 {
   ezRenderWorld::GetExtractionEvent().RemoveEventHandler(ezMakeDelegate(&ezMaterialManager::OnExtractionEvent, this));
-  ezRenderWorld::GetRenderEvent().RemoveEventHandler(ezMakeDelegate(&ezMaterialManager::OnRenderEvent, this));
+  ezGALDevice::s_Events.RemoveEventHandler(ezMakeDelegate(&ezMaterialManager::OnRenderEvent, this));
 }
 
 void ezMaterialManager::MaterialAddedOrReset(ezMaterialResource* pMaterial)
@@ -177,10 +177,10 @@ void ezMaterialManager::OnExtractionEvent(const ezRenderWorldExtractionEvent& e)
   m_RemovedMaterials.Clear();
 }
 
-void ezMaterialManager::OnRenderEvent(const ezRenderWorldRenderEvent& e)
+void ezMaterialManager::OnRenderEvent(const ezGALDeviceEvent& e)
 {
   // ezUInt32 uiDataIndex = ezRenderWorld::GetDataIndexForRendering();
-  if (e.m_Type != ezRenderWorldRenderEvent::Type::BeginRender)
+  if (e.m_Type != ezGALDeviceEvent::BeforeBeginFrame)
     return;
 
   if (m_pPendingChanges == nullptr)
@@ -320,7 +320,7 @@ void ezMaterialManager::MaterialShaderConstants::UpdateConstantBuffers()
       }
 
       // Build map
-      for (int i = 0; i < m_pLayout->m_Constants.GetCount(); ++i)
+      for (ezUInt32 i = 0; i < m_pLayout->m_Constants.GetCount(); ++i)
       {
         m_ParameterNameToLayoutIndex.Insert(m_pLayout->m_Constants[i].m_sName, i);
       }
@@ -400,7 +400,7 @@ void ezMaterialManager::MaterialShaderConstants::UpdateMaterial(ezMaterialResour
 {
   ezResourceLock<ezMaterialResource> pMaterial(hMaterial, ezResourceAcquireMode::PointerOnly);
   auto itMaterial = m_pParent->m_Materials.Find(pMaterial.GetPointer());
-  if (!itMaterial.IsValid() || itMaterial.Value().m_hShader.IsValid())
+  if (!itMaterial.IsValid() || !itMaterial.Value().m_hShader.IsValid())
   {
     // As materials can be added at any time, we might have entries that were registered between extraction and rendering and will this be first extracted in the next frame. Ignore these.
     return;

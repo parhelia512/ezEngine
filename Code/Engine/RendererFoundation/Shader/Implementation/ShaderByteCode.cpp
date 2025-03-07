@@ -202,7 +202,7 @@ bool ezShaderConstantBufferLayout::operator==(const ezShaderConstantBufferLayout
     return false;
 
   const ezUInt32 uiCount = m_Constants.GetCount();
-  for (int i = 0; i < uiCount; ++i)
+  for (ezUInt32 i = 0; i < uiCount; ++i)
   {
     const ezShaderConstant& a = m_Constants[i];
     const ezShaderConstant& b = rhs.m_Constants[i];

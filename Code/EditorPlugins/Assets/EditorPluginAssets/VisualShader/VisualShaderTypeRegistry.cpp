@@ -585,6 +585,13 @@ void ezVisualShaderTypeRegistry::ExtractNodeConfig(const ezOpenDdlReaderElement*
           temp.Append("\n");
         nd.m_sShaderCodeMaterialParams = temp;
       }
+      else if (pElement->GetName() == "CodeMaterialConstants")
+      {
+        temp = pElement->GetPrimitivesString()[0];
+        if (!temp.IsEmpty() && !temp.EndsWith("\n"))
+          temp.Append("\n");
+        nd.m_sShaderCodeMaterialConstants = temp;
+      }
       else if (pElement->GetName() == "CodeMaterialCB")
       {
         temp = pElement->GetPrimitivesString()[0];

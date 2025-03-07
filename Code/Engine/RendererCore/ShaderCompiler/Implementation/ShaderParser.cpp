@@ -694,7 +694,7 @@ ezStatus ParseShaderConstant(const TokenStream& tokens, ezUInt32& ref_uiCurToken
 
     const char* szStart = tokens[uiStartToken]->m_DataView.GetStartPointer();
     const char* szEnd = tokens[ref_uiCurToken]->m_DataView.GetStartPointer();
-    ezStringView sConstant(szStart, szEnd - szStart);
+    ezStringView sConstant(szStart, static_cast<ezUInt32>(szEnd - szStart));
     return ezStatus(ezFmt("Unknown shader constant: {}", sConstant));
   }
   else if (Accept(tokens, ref_uiCurToken, packedhalf2Pattern, &acceptedTokens))

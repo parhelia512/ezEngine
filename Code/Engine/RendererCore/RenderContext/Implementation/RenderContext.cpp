@@ -1160,26 +1160,31 @@ void ezRenderContext::ApplyMaterialState()
 
   if (m_hNewMaterial != m_hMaterial)
   {
-    const ezMaterialManager::MaterialData& data = ezMaterialManager::GetSingleton()->GetMaterialData(pMaterial);
-
-    BindShaderInternal(data.m_hShader, ezShaderBindFlags::Default);
-
-    if (!data.m_ConstantBuffer.IsInvalidated())
+    const ezMaterialManager::MaterialData* data = ezMaterialManager::GetSingleton()->GetMaterialData(pMaterial);
+    if (data == nullptr || data->m_ConstantBuffer.IsInvalidated())
     {
-      BindConstantBuffer("ezMaterialConstants", data.m_ConstantBuffer);
+      BindShaderInternal(ezShaderResourceHandle(), ezShaderBindFlags::Default);
+      return;
     }
 
-    for (const ezPermutationVar& perm : data.m_PermutationVars)
+    BindShaderInternal(data->m_hShader, ezShaderBindFlags::Default);
+
+    if (!data->m_ConstantBuffer.IsInvalidated())
+    {
+      BindConstantBuffer("ezMaterialConstants", data->m_ConstantBuffer);
+    }
+
+    for (const ezPermutationVar& perm : data->m_PermutationVars)
     {
       SetShaderPermutationVariableInternal(perm.m_sName, perm.m_sValue);
     }
 
-    for (const ezMaterialResourceDescriptor::Texture2DBinding& binding : data.m_Texture2DBindings)
+    for (const ezMaterialResourceDescriptor::Texture2DBinding& binding : data->m_Texture2DBindings)
     {
       BindTexture2D(binding.m_Name, binding.m_Value);
     }
 
-    for (const ezMaterialResourceDescriptor::TextureCubeBinding& binding : data.m_TextureCubeBindings)
+    for (const ezMaterialResourceDescriptor::TextureCubeBinding& binding : data->m_TextureCubeBindings)
     {
       BindTextureCube(binding.m_Name, binding.m_Value);
     }

@@ -6,6 +6,7 @@
 #include <RendererCore/Material/MaterialResource.h>
 
 class ezGALCommandEncoder;
+struct ezGALDeviceEvent;
 
 class EZ_RENDERERCORE_DLL ezMaterialManager
 {
@@ -30,7 +31,7 @@ public:
   };
 
 public:
-  const MaterialData& GetMaterialData(const ezMaterialResource* pMaterial) const;
+  const MaterialData* GetMaterialData(const ezMaterialResource* pMaterial) const;
 
 private:
   EZ_MAKE_SUBSYSTEM_STARTUP_FRIEND(RendererCore, MaterialManager);
@@ -119,7 +120,7 @@ private:
   static void ExtractMaterial(ezMaterialResource* pMaterial, ExtractedMaterial& extractedMaterial);
 
   void OnExtractionEvent(const ezRenderWorldExtractionEvent& e);
-  void OnRenderEvent(const ezRenderWorldRenderEvent& e);
+  void OnRenderEvent(const ezGALDeviceEvent& e);
 
   MaterialShaderConstants& GetShaderConstants(ezShaderResourceHandle hShader);
 
