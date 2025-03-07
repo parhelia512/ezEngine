@@ -49,38 +49,16 @@ ezMaterialManager::~ezMaterialManager()
   ezRenderWorld::GetRenderEvent().RemoveEventHandler(ezMakeDelegate(&ezMaterialManager::OnRenderEvent, this));
 }
 
-void ezMaterialManager::MaterialUpdated(ezMaterialResource* pMaterial)
+void ezMaterialManager::MaterialAddedOrReset(ezMaterialResource* pMaterial)
 {
-  EZ_LOCK(m_MaterialShaderMutex);
+  EZ_LOCK(m_ExtractionMutex);
+  m_AddedOrResetMaterials.Insert(pMaterial->GetResourceHandle());
+}
 
-  const ezShaderResourceHandle hOldShader = pMaterial->m_hShader;
-  const ezMaterialResource::ezMaterialId oldId = pMaterial->m_MaterialId;
-  const bool bShaderChanged = pMaterial->m_mDesc.m_hShader != hOldShader;
-
-  if (!hOldShader.IsValid())
-  {
-    // Newly created material
-    pMaterial->m_hShader = pMaterial->m_mDesc.m_hShader;
-    MaterialShaderConstants& msc = GetShaderConstants(pMaterial->m_hShader);
-    pMaterial->m_MaterialId = msc.AddMaterial(pMaterial->GetResourceHandle());
-  }
-  else if (bShaderChanged)
-  {
-    // Material reloaded and changed shader
-    {
-      // Delete old registration
-      EZ_LOCK(m_ExtractionMutex);
-      m_RemovedMaterials.PushBack({pMaterial, hOldShader, oldId});
-    }
-    // Create new material registration
-    pMaterial->m_hShader = pMaterial->m_mDesc.m_hShader;
-    MaterialShaderConstants& msc = GetShaderConstants(pMaterial->m_hShader);
-    pMaterial->m_MaterialId = msc.AddMaterial(pMaterial->GetResourceHandle());
-  }
-  else
-  {
-    // Material reloaded with same shader. Nothing to do except marking material dirty.
-  }
+void ezMaterialManager::MaterialModified(ezMaterialResourceHandle hMaterial)
+{
+  EZ_LOCK(m_ExtractionMutex);
+  m_ModifiedMaterials.Insert(hMaterial);
 }
 
 void ezMaterialManager::MaterialRemoved(ezMaterialResource* pMaterial)
@@ -92,10 +70,68 @@ void ezMaterialManager::MaterialRemoved(ezMaterialResource* pMaterial)
   m_RemovedMaterials.PushBack({pMaterial, pMaterial->m_hShader, pMaterial->m_MaterialId});
 }
 
-void ezMaterialManager::MaterialModified(ezMaterialResourceHandle hMaterial)
+void ezMaterialManager::RegisterMaterial(ezMaterialResource* pMaterial)
 {
-  EZ_LOCK(m_ExtractionMutex);
-  m_ChangedMaterials.Insert(hMaterial);
+  EZ_LOCK(m_MaterialShaderMutex);
+
+  const ezShaderResourceHandle hOldShader = pMaterial->m_hShader;
+  const ezMaterialResource::ezMaterialId oldId = pMaterial->m_MaterialId;
+  const bool bShaderChanged = pMaterial->m_mFlattenedDesc.m_hShader != hOldShader;
+
+  if (!hOldShader.IsValid())
+  {
+    // Newly created material
+    pMaterial->m_hShader = pMaterial->m_mFlattenedDesc.m_hShader;
+    MaterialShaderConstants& msc = GetShaderConstants(pMaterial->m_hShader);
+    pMaterial->m_MaterialId = msc.AddMaterial(pMaterial->GetResourceHandle());
+  }
+  else if (bShaderChanged)
+  {
+    // Material reloaded and changed shader
+    {
+      // Delete old registration
+      m_RemovedMaterials.PushBack({pMaterial, hOldShader, oldId});
+    }
+    // Create new material registration
+    pMaterial->m_hShader = pMaterial->m_mFlattenedDesc.m_hShader;
+    MaterialShaderConstants& msc = GetShaderConstants(pMaterial->m_hShader);
+    pMaterial->m_MaterialId = msc.AddMaterial(pMaterial->GetResourceHandle());
+
+    // #TODO Fire shader changed event
+  }
+  else
+  {
+    // Material reloaded with same shader. Nothing to do except marking material dirty which the resource code already did.
+  }
+}
+
+void ezMaterialManager::ExtractMaterial(ezMaterialResource* pMaterial, ezMaterialManager::ExtractedMaterial& extractedMaterial)
+{
+  extractedMaterial.m_hMaterial = pMaterial->GetResourceHandle();
+  extractedMaterial.m_hShader = pMaterial->m_mFlattenedDesc.m_hShader;
+  extractedMaterial.m_MaterialId = pMaterial->m_MaterialId;
+  extractedMaterial.m_DirtyFlags = pMaterial->m_DirtyFlags;
+  for (ezMaterialResource::DirtyFlags::Enum flag : pMaterial->m_DirtyFlags)
+  {
+    switch (flag)
+    {
+      case ezMaterialResource::DirtyFlags::Parameter:
+        extractedMaterial.m_Parameters = pMaterial->m_mFlattenedDesc.m_Parameters;
+        break;
+      case ezMaterialResource::DirtyFlags::Texture2D:
+        extractedMaterial.m_Texture2DBindings = pMaterial->m_mFlattenedDesc.m_Texture2DBindings;
+        break;
+      case ezMaterialResource::DirtyFlags::TextureCube:
+        extractedMaterial.m_TextureCubeBindings = pMaterial->m_mFlattenedDesc.m_TextureCubeBindings;
+        break;
+      case ezMaterialResource::DirtyFlags::PermutationVar:
+        extractedMaterial.m_PermutationVars = pMaterial->m_mFlattenedDesc.m_PermutationVars;
+        break;
+      default:
+        break;
+    }
+  }
+  pMaterial->m_DirtyFlags.Clear();
 }
 
 void ezMaterialManager::OnExtractionEvent(const ezRenderWorldExtractionEvent& e)
@@ -108,48 +144,36 @@ void ezMaterialManager::OnExtractionEvent(const ezRenderWorldExtractionEvent& e)
 
   EZ_LOCK(m_ExtractionMutex);
   m_pPendingChanges = EZ_NEW(ezFrameAllocator::GetCurrentAllocator(), PendingChanges);
-  m_pPendingChanges->m_ChangedMaterials.SetCount(m_ChangedMaterials.GetCount());
-  m_pPendingChanges->m_RemovedMaterials = m_RemovedMaterials;
+  m_pPendingChanges->m_AddedOrModifiedMaterials.SetCount(m_AddedOrResetMaterials.GetCount() + m_ModifiedMaterials.GetCount());
 
+  // First, go through all added materials and register them.
   ezUInt32 uiCurrentIndex = 0;
-  for (const ezMaterialResourceHandle& hMaterial : m_ChangedMaterials)
+  for (const ezMaterialResourceHandle& hMaterial : m_AddedOrResetMaterials)
   {
-    ExtractedMaterial& extractedMaterial = m_pPendingChanges->m_ChangedMaterials[uiCurrentIndex];
+    ExtractedMaterial& extractedMaterial = m_pPendingChanges->m_AddedOrModifiedMaterials[uiCurrentIndex];
     ezResourceLock<ezMaterialResource> pMaterial(hMaterial, ezResourceAcquireMode::BlockTillLoaded);
     if (pMaterial->m_DirtyFlags.IsSet(ezMaterialResource::DirtyFlags::FlattenHierarchy))
     {
       pMaterial->FlattenHierarchy();
     }
-
-    extractedMaterial.m_hMaterial = hMaterial;
-    extractedMaterial.m_hShader = pMaterial->m_mDesc.m_hShader;
-    extractedMaterial.m_MaterialId = pMaterial->m_MaterialId;
-    extractedMaterial.m_DirtyFlags = pMaterial->m_DirtyFlags;
-    for (ezMaterialResource::DirtyFlags::Enum flag : pMaterial->m_DirtyFlags)
-    {
-      switch (flag)
-      {
-        case ezMaterialResource::DirtyFlags::Parameter:
-          extractedMaterial.m_Parameters = pMaterial->m_mDesc.m_Parameters;
-          break;
-        case ezMaterialResource::DirtyFlags::Texture2D:
-          extractedMaterial.m_Texture2DBindings = pMaterial->m_mDesc.m_Texture2DBindings;
-          break;
-        case ezMaterialResource::DirtyFlags::TextureCube:
-          extractedMaterial.m_TextureCubeBindings = pMaterial->m_mDesc.m_TextureCubeBindings;
-          break;
-        case ezMaterialResource::DirtyFlags::PermutationVar:
-          extractedMaterial.m_PermutationVars = pMaterial->m_mDesc.m_PermutationVars;
-          break;
-        default:
-          break;
-      }
-    }
-    pMaterial->m_DirtyFlags.Clear();
+    RegisterMaterial(pMaterial.GetPointerNonConst());
+    ExtractMaterial(pMaterial.GetPointerNonConst(), extractedMaterial);
     uiCurrentIndex++;
   }
 
-  m_ChangedMaterials.Clear();
+  for (const ezMaterialResourceHandle& hMaterial : m_ModifiedMaterials)
+  {
+    ExtractedMaterial& extractedMaterial = m_pPendingChanges->m_AddedOrModifiedMaterials[uiCurrentIndex];
+    ezResourceLock<ezMaterialResource> pMaterial(hMaterial, ezResourceAcquireMode::BlockTillLoaded);
+    ExtractMaterial(pMaterial.GetPointerNonConst(), extractedMaterial);
+    uiCurrentIndex++;
+  }
+
+  // RegisterMaterial might extend m_RemovedMaterials, so we have to copy the array after processing added materials. This is the case when the material shader was changed in which case we need to unregister the registration at the old shader and re-register on the new shader.
+  m_pPendingChanges->m_RemovedMaterials = m_RemovedMaterials;
+
+  m_AddedOrResetMaterials.Clear();
+  m_ModifiedMaterials.Clear();
   m_RemovedMaterials.Clear();
 }
 
@@ -175,7 +199,7 @@ void ezMaterialManager::OnRenderEvent(const ezRenderWorldRenderEvent& e)
   }
 
   // Execute updates and additions
-  for (const auto& extractedMaterial : m_pPendingChanges->m_ChangedMaterials)
+  for (const auto& extractedMaterial : m_pPendingChanges->m_AddedOrModifiedMaterials)
   {
     ezResourceLock<ezMaterialResource> pMaterial(extractedMaterial.m_hMaterial, ezResourceAcquireMode::PointerOnly);
     auto it = m_Materials.FindOrAdd(pMaterial.GetPointer());
@@ -277,7 +301,6 @@ void ezMaterialManager::MaterialShaderConstants::UpdateConstantBuffers()
   if (m_bShaderDirty)
   {
     // Rebuild mapping
-    m_bShaderDirty = false;
     ezResourceLock<ezShaderResource> pShader(m_hShader, ezResourceAcquireMode::BlockTillLoaded);
     ezSharedPtr<ezShaderConstantBufferLayout> pNewLayout = pShader->GetConstantBufferLayout();
     bLayoutChanged = m_pLayout == nullptr || *m_pLayout != *pNewLayout;
@@ -286,6 +309,16 @@ void ezMaterialManager::MaterialShaderConstants::UpdateConstantBuffers()
       m_pLayout = pNewLayout;
       m_ParameterNameToLayoutIndex.Clear();
 
+      if (m_pLayout == nullptr)
+      {
+        if (!m_bShaderInvalid)
+        {
+          ezLog::Error("The shader '{}' is used by a material but does not have a valid ezShaderConstantBufferLayout. Probably the shader does not have a MATERIALCONSTANTS section.", pShader->GetResourceID());
+          m_bShaderInvalid = true;
+        }
+        return;
+      }
+
       // Build map
       for (int i = 0; i < m_pLayout->m_Constants.GetCount(); ++i)
       {
@@ -293,6 +326,7 @@ void ezMaterialManager::MaterialShaderConstants::UpdateConstantBuffers()
       }
       DestroyConstantBuffers();
     }
+    m_bShaderDirty = false;
   }
 
   {
@@ -417,6 +451,6 @@ ezMaterialManager::ExtractedMaterial::ExtractedMaterial()
 
 ezMaterialManager::PendingChanges::PendingChanges()
   : m_RemovedMaterials(ezFrameAllocator::GetCurrentAllocator())
-  , m_ChangedMaterials(ezFrameAllocator::GetCurrentAllocator())
+  , m_AddedOrModifiedMaterials(ezFrameAllocator::GetCurrentAllocator())
 {
 }

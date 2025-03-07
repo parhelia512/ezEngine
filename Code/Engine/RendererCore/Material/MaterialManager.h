@@ -66,6 +66,7 @@ private:
 
     // Shader data
     bool m_bShaderDirty = true;
+    bool m_bShaderInvalid = false;
     ezSet<ezMaterialResource::ezMaterialId> m_DirtyMaterials;
     ezSharedPtr<ezShaderConstantBufferLayout> m_pLayout;
     ezHashTable<ezHashedString, ezUInt32> m_ParameterNameToLayoutIndex;
@@ -103,16 +104,19 @@ private:
     PendingChanges();
 
     ezDynamicArray<MaterialRegistration> m_RemovedMaterials;
-    ezDynamicArray<ExtractedMaterial> m_ChangedMaterials;
+    ezDynamicArray<ExtractedMaterial> m_AddedOrModifiedMaterials;
   };
 
 private:
   ezMaterialManager();
   ~ezMaterialManager();
 
-  void MaterialUpdated(ezMaterialResource* pMaterial);
-  void MaterialRemoved(ezMaterialResource* pMaterial);
+  void MaterialAddedOrReset(ezMaterialResource* pMaterial);
   void MaterialModified(ezMaterialResourceHandle hMaterial);
+  void MaterialRemoved(ezMaterialResource* pMaterial);
+
+  void RegisterMaterial(ezMaterialResource* pMaterial);
+  static void ExtractMaterial(ezMaterialResource* pMaterial, ExtractedMaterial& extractedMaterial);
 
   void OnExtractionEvent(const ezRenderWorldExtractionEvent& e);
   void OnRenderEvent(const ezRenderWorldRenderEvent& e);
@@ -122,13 +126,13 @@ private:
 private:
   // Extract these materials during extraction phase.
   ezMutex m_ExtractionMutex;
-  ezHashSet<ezMaterialResourceHandle> m_AddedMaterials;
-  ezHashSet<ezMaterialResourceHandle> m_ChangedMaterials;
+  ezHashSet<ezMaterialResourceHandle> m_AddedOrResetMaterials;
+  ezHashSet<ezMaterialResourceHandle> m_ModifiedMaterials;
   ezDynamicArray<MaterialRegistration> m_RemovedMaterials;
 
   // Extraction result created by frame allocator
   ezUniquePtr<PendingChanges> m_pPendingChanges;
-  
+
   // Used during material creation, deletion and updates.
   ezMutex m_MaterialShaderMutex;
   ezMap<ezShaderResourceHandle, ezUniquePtr<MaterialShaderConstants>> m_MaterialShaders;

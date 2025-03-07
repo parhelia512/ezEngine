@@ -248,7 +248,7 @@ ezTextureCubeResourceHandle ezMaterialResource::GetTextureCubeBinding(const ezTe
 ezRenderData::Category ezMaterialResource::GetRenderDataCategory()
 {
   FlattenHierarchy();
-  EZ_ASSERT_DEBUG(m_mFlattenedDesc.m_RenderDataCategory != ezInvalidRenderDataCategory, "");
+  EZ_ASSERT_DEBUG(m_mFlattenedDesc.m_RenderDataCategory != ezInvalidRenderDataCategory, "Category {} != {}", m_mDesc.m_RenderDataCategory.m_uiValue, ezInvalidRenderDataCategory.m_uiValue);
   return m_mFlattenedDesc.m_RenderDataCategory;
 }
 
@@ -641,7 +641,7 @@ ezResourceLoadDesc ezMaterialResource::UpdateContent(ezStreamReader* pOuterStrea
   m_mOriginalDesc = m_mDesc;
 
   // We add the material right away instead of during extraction / begin rendering to make sure the materialId can be used right away.
-  ezMaterialManager::GetSingleton()->MaterialUpdated(this);
+  ezMaterialManager::GetSingleton()->MaterialAddedOrReset(this);
   SetModified(DirtyFlags::ResourceCreation);
   return res;
 }
@@ -674,7 +674,7 @@ EZ_RESOURCE_IMPLEMENT_CREATEABLE(ezMaterialResource, ezMaterialResourceDescripto
   }
 
   // We add the material right away instead of during extraction / begin rendering to make sure the materialId can be used right away.
-  ezMaterialManager::GetSingleton()->MaterialUpdated(this);
+  ezMaterialManager::GetSingleton()->MaterialAddedOrReset(this);
   SetModified(DirtyFlags::ResourceCreation);
   return res;
 }
@@ -684,7 +684,7 @@ void ezMaterialResource::OnBaseMaterialModified(const ezMaterialResource* pModif
   EZ_ASSERT_DEV(m_mDesc.m_hBaseMaterial == pModifiedMaterial, "Implementation error");
 
   // #TODO Remove base material inheritance at runtime
-  ezMaterialManager::GetSingleton()->MaterialUpdated(this);
+  ezMaterialManager::GetSingleton()->MaterialAddedOrReset(this);
   SetModified(DirtyFlags::ResourceReset);
 }
 

@@ -148,6 +148,7 @@ public:
   void OnBaseMaterialModified(const ezMaterialResource* pModifiedMaterial);
   void AddPermutationVar(ezStringView sName, ezStringView sValue);
   void SetModified(DirtyFlags::Enum flag);
+  /// \brief This is a temporary function until runtime material inheritance is removed at which point the material will be fully loaded after UpdateContent is called. This will also allow us to register the material at the material manager and give it a materialId immediately.
   void FlattenHierarchy();
 
 private:
@@ -155,7 +156,7 @@ private:
 
   // Dynamic data
   ezMaterialResourceDescriptor m_mDesc; // Current desc of the material. Contains any changes done after loading.
-  ezMaterialResourceDescriptor m_mFlattenedDesc; // Contains all base materials and m_mDesc flattened into the actual runtime config.
+  ezMaterialResourceDescriptor m_mFlattenedDesc; // Contains all base materials and m_mDesc flattened into the actual runtime config. Will be removed once runtime material inheritance is removed.
   ezBitflags<DirtyFlags> m_DirtyFlags; // Flags indicating what has changed in m_mDesc this frame.
 
   // ezMaterialManager registration
