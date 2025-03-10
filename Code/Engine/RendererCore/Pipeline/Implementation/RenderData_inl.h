@@ -56,6 +56,11 @@ EZ_FORCE_INLINE ezUInt64 ezRenderData::GetFinalSortingKey(Category category, con
   return s_CategoryData[category.m_uiValue].m_sortingKeyFunc(this, camera);
 }
 
+EZ_FORCE_INLINE bool ezRenderData::CanBatchByBaseValues(const ezRenderData& other) const
+{
+  return m_Flags.IsSet(Flags::FlipWinding) == other.m_Flags.IsSet(Flags::FlipWinding) && m_hInstanceDataBuffer == other.m_hInstanceDataBuffer;
+}
+
 //////////////////////////////////////////////////////////////////////////
 
 template <typename T>
@@ -68,6 +73,10 @@ static T* ezCreateRenderDataForThisFrame(const ezGameObject* pOwner)
   if (pOwner != nullptr)
   {
     pRenderData->m_Flags.AddOrRemove(ezRenderData::Flags::Dynamic, pOwner->IsDynamic());
+    pRenderData->m_Flags.AddOrRemove(ezRenderData::Flags::FlipWinding, pOwner->GetGlobalTransformSimd().HasMirrorScaling());
+
+    pRenderData->m_vGlobalPosition = pOwner->GetGlobalPosition();
+
     pRenderData->m_hOwner = pOwner->GetHandle();
   }
 

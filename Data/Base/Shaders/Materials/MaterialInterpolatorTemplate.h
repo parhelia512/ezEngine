@@ -41,8 +41,12 @@ struct STAGE_TEMPLATE
   float4 DebugInterpolator : DEBUG_INTERPOLATOR;
 #endif
 
-  // If CAMERA_MODE is CAMERA_MODE_STEREO, every even instance is for the left eye and every odd is for the right eye.
-  uint InstanceID : SV_InstanceID;
+  uint nointerpolation InstanceDataOffset : INSTANCE_DATA_OFFSET;
+#if defined(USE_CUSTOM_INSTANCE_DATA)
+  uint nointerpolation CustomInstanceDataOffset : CUSTOM_INSTANCE_DATA_OFFSET;
+#endif
+
+  uint nointerpolation MaterialDataOffset : MATERIAL_DATA_OFFSET;
 
 #if defined(RENDER_TARGET_ARRAY_INDEX)
   uint RenderTargetArrayIndex : SV_RenderTargetArrayIndex;

@@ -67,7 +67,7 @@ VS_OUT FillVertexData(VS_IN Input)
 #endif
 
 #if defined(USE_SKINNING)
-  objectPosition = SkinPosition(objectPosition, Input.BoneWeights, Input.BoneIndices);
+  objectPosition = SkinPosition(objectPosition, Input.BoneWeights, Input.BoneIndices + Input.AuxDataOffset);
 #endif
 
   VS_OUT Output;
@@ -89,7 +89,7 @@ VS_OUT FillVertexData(VS_IN Input)
   float3 normal = Input.Normal * 2.0 - 1.0;
 
 #  if defined(USE_SKINNING)
-  normal = SkinDirection(normal, Input.BoneWeights, Input.BoneIndices);
+  normal = SkinDirection(normal, Input.BoneWeights, Input.BoneIndices + Input.AuxDataOffset);
 #  endif
 
   Output.Normal = normalize(mul(objectToWorldNormal, normal));
@@ -99,7 +99,7 @@ VS_OUT FillVertexData(VS_IN Input)
   float3 tangent = Input.Tangent.xyz * 2.0 - 1.0;
 
 #  if defined(USE_SKINNING)
-  tangent = SkinDirection(tangent, Input.BoneWeights, Input.BoneIndices);
+  tangent = SkinDirection(tangent, Input.BoneWeights, Input.BoneIndices + Input.AuxDataOffset);
 #  endif
 
   float handednessCorrection = Input.Tangent.w * 2.0 - 1.0;
@@ -134,7 +134,11 @@ VS_OUT FillVertexData(VS_IN Input)
 #  endif
 #endif
 
-  Output.InstanceID = Input.InstanceID;
+  Output.InstanceDataOffset = Input.InstanceDataOffset;
+#if defined(USE_CUSTOM_INSTANCE_DATA)
+  Output.CustomInstanceDataOffset = Input.CustomInstanceDataOffset;
+#endif
+  Output.MaterialDataOffset = Input.MaterialDataOffset;
 
 #if defined(CAMERA_MODE)
 #  if CAMERA_MODE == CAMERA_MODE_STEREO

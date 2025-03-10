@@ -4,7 +4,7 @@
 #include <Core/WorldSerializer/WorldReader.h>
 #include <Core/WorldSerializer/WorldWriter.h>
 #include <RendererCore/Meshes/MeshComponentBase.h>
-#include <RendererCore/RenderWorld/RenderWorld.h>
+#include <RendererCore/RenderWorld/RenderWorldModule.h>
 #include <RendererFoundation/Device/Device.h>
 
 //////////////////////////////////////////////////////////////////////////
@@ -25,7 +25,7 @@ EZ_END_DYNAMIC_REFLECTED_TYPE;
 
 void ezMsgSetMeshMaterial::Serialize(ezStreamWriter& inout_stream) const
 {
-  // has to be stringyfied for transfer
+  // has to be stringified for transfer
   inout_stream << GetMaterialFile();
   inout_stream << m_uiMaterialSlot;
 }
@@ -48,14 +48,12 @@ EZ_END_DYNAMIC_REFLECTED_TYPE;
 
 void ezMeshRenderData::FillSortingKey()
 {
-  m_uiFlipWinding = m_GlobalTransform.HasMirrorScaling() ? 1 : 0;
-  m_uiUniformScale = m_GlobalTransform.ContainsUniformScale() ? 1 : 0;
-
   const ezUInt32 uiMeshIDHash = ezHashingUtils::StringHashTo32(m_hMesh.GetResourceIDHash());
   const ezUInt32 uiMaterialIDHash = m_hMaterial.IsValid() ? ezHashingUtils::StringHashTo32(m_hMaterial.GetResourceIDHash()) : 0;
+  const ezUInt32 uiFlipWinding = m_Flags.IsSet(Flags::FlipWinding) ? 1 : 0;
 
   // Sort by material and then by mesh
-  m_uiSortingKey = (uiMaterialIDHash << 16) | ((uiMeshIDHash + m_uiSubMeshIndex) & 0xFFFE) | m_uiFlipWinding;
+  m_uiSortingKey = (uiMaterialIDHash << 16) | ((uiMeshIDHash + m_uiSubMeshIndex) & 0xFFFE) | uiFlipWinding;
 }
 
 bool ezMeshRenderData::CanBatch(const ezRenderData& other0) const
@@ -63,7 +61,8 @@ bool ezMeshRenderData::CanBatch(const ezRenderData& other0) const
   const auto& other = ezStaticCast<const ezMeshRenderData&>(other0);
 
   return m_hMesh == other.m_hMesh && m_uiSubMeshIndex == other.m_uiSubMeshIndex &&
-         m_hMaterial == other.m_hMaterial && m_uiFlipWinding == other.m_uiFlipWinding;
+         m_hMaterial == other.m_hMaterial &&
+         CanBatchByBaseValues(other0);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -165,6 +164,8 @@ void ezMeshComponentBase::OnMsgExtractRenderData(ezMsgExtractRenderData& msg) co
   if (!m_hMesh.IsValid())
     return;
 
+
+
   ezResourceLock<ezMeshResource> pMesh(m_hMesh, ezResourceAcquireMode::AllowLoadingFallback);
   ezArrayPtr<const ezMeshResourceDescriptor::SubMesh> parts = pMesh->GetSubMeshes();
 
@@ -190,6 +191,10 @@ void ezMeshComponentBase::OnMsgExtractRenderData(ezMsgExtractRenderData& msg) co
       pRenderData->m_vCustomData = m_vCustomData;
       pRenderData->m_uiSubMeshIndex = uiPartIndex;
       pRenderData->m_uiUniqueID = GetUniqueIdForRendering(uiMaterialIndex);
+
+#if EZ_ENABLED(EZ_COMPILE_FOR_DEVELOPMENT)
+      pRenderData->m_Bounds = GetOwner()->GetGlobalBounds().GetBox();
+#endif
 
       pRenderData->FillSortingKey();
     }

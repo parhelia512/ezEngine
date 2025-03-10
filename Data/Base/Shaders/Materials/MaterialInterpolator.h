@@ -48,8 +48,18 @@ struct VS_IN
   uint4 BoneIndices : BONEINDICES0;
 #endif
 
-  uint InstanceID : SV_InstanceID;
+  // TODO: add back later
+  // uint InstanceID : SV_InstanceID;
   uint VertexID : SV_VertexID;
+
+
+  uint InstanceDataOffset : INSTANCE_DATA_OFFSET;
+  uint CustomInstanceDataOffset : CUSTOM_INSTANCE_DATA_OFFSET;
+  uint MaterialDataOffset : MATERIAL_DATA_OFFSET;
+
+#if defined(USE_SKINNING) || defined(USE_AUX_DATA)
+  uint AuxDataOffset : AUX_DATA_OFFSET; // Skinning, Procedural Vertex Colors
+#endif
 };
 
 #if defined(VERTEX_SHADER) || defined(HULL_SHADER) || defined(DOMAIN_SHADER)
