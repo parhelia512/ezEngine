@@ -32,36 +32,12 @@ EZ_BEGIN_SUBSYSTEM_DECLARATION(RendererCore, MaterialManager)
 
   ON_HIGHLEVELSYSTEMS_SHUTDOWN
   {
+    // Required here so that we clean up extracted data before the frame allocator gets destroyed.
     ezMaterialManager::GetSingleton()->Cleanup();
   }
 
 EZ_END_SUBSYSTEM_DECLARATION;
 // clang-format on
-
-const ezMaterialManager::MaterialData* ezMaterialManager::GetMaterialData(const ezMaterialResource* pMaterial)
-{
-  ezMaterialManager* pManager = GetSingleton();
-  if (!pManager)
-    return nullptr;
-
-  auto it = pManager->m_Materials.Find(pMaterial);
-  // EZ_ASSERT_DEV(it.IsValid(), "Loaded materials must always have a valid entry in m_Materials");
-  return it.IsValid() ? &it.Value() : nullptr;
-}
-
-ezMaterialManager::ezMaterialManager()
-  : m_SingletonRegistrar(this)
-{
-  ezRenderWorld::GetExtractionEvent().AddEventHandler(ezMakeDelegate(&ezMaterialManager::OnExtractionEvent, this));
-  ezGALDevice::s_Events.AddEventHandler(ezMakeDelegate(&ezMaterialManager::OnRenderEvent, this));
-}
-
-ezMaterialManager::~ezMaterialManager()
-{
-  ezRenderWorld::GetExtractionEvent().RemoveEventHandler(ezMakeDelegate(&ezMaterialManager::OnExtractionEvent, this));
-  ezGALDevice::s_Events.RemoveEventHandler(ezMakeDelegate(&ezMaterialManager::OnRenderEvent, this));
-  Cleanup();
-}
 
 void ezMaterialManager::MaterialAddedOrReset(ezMaterialResource* pMaterial)
 {
@@ -91,6 +67,103 @@ void ezMaterialManager::MaterialRemoved(ezMaterialResource* pMaterial)
 
   EZ_LOCK(pManager->m_ExtractionMutex);
   pManager->m_RemovedMaterials.PushBack({pMaterial, pMaterial->m_hShader, pMaterial->m_MaterialId});
+}
+
+const ezMaterialManager::MaterialData* ezMaterialManager::GetMaterialData(const ezMaterialResource* pMaterial)
+{
+  ezMaterialManager* pManager = GetSingleton();
+  if (!pManager)
+    return nullptr;
+
+  auto it = pManager->m_Materials.Find(pMaterial);
+  // EZ_ASSERT_DEV(it.IsValid(), "Loaded materials must always have a valid entry in m_Materials");
+  return it.IsValid() ? &it.Value() : nullptr;
+}
+
+ezMaterialManager::ezMaterialManager()
+  : m_SingletonRegistrar(this)
+{
+  ezRenderWorld::GetExtractionEvent().AddEventHandler(ezMakeDelegate(&ezMaterialManager::OnExtractionEvent, this));
+  ezGALDevice::s_Events.AddEventHandler(ezMakeDelegate(&ezMaterialManager::OnRenderEvent, this));
+}
+
+ezMaterialManager::~ezMaterialManager()
+{
+  ezRenderWorld::GetExtractionEvent().RemoveEventHandler(ezMakeDelegate(&ezMaterialManager::OnExtractionEvent, this));
+  ezGALDevice::s_Events.RemoveEventHandler(ezMakeDelegate(&ezMaterialManager::OnRenderEvent, this));
+  Cleanup();
+}
+
+void ezMaterialManager::OnExtractionEvent(const ezRenderWorldExtractionEvent& e)
+{
+  // ezUInt32 uiDataIndex = ezRenderWorld::GetDataIndexForExtraction();
+  if (e.m_Type != ezRenderWorldExtractionEvent::Type::EndExtraction)
+    return;
+
+  ExtractMaterialUpdates();
+}
+
+void ezMaterialManager::OnRenderEvent(const ezGALDeviceEvent& e)
+{
+  switch (e.m_Type)
+  {
+    case ezGALDeviceEvent::BeforeShutdown:
+    {
+      Cleanup();
+    }
+    break;
+    case ezGALDeviceEvent::AfterBeginFrame:
+    {
+      ApplyMaterialChanges();
+    }
+    break;
+    default:
+      break;
+  }
+}
+
+void ezMaterialManager::ExtractMaterialUpdates()
+{
+  EZ_ASSERT_DEBUG(m_pPendingChanges == nullptr, "OnRenderEvent should have been called to consume pending changes or ExtractMaterialUpdates was called twice.");
+
+  ezHashSet<ezMaterialResourceHandle> addedOrResetMaterials;
+  ezHashSet<ezMaterialResourceHandle> modifiedMaterials;
+  ezDynamicArray<MaterialRegistration> removedMaterials;
+  {
+    EZ_LOCK(m_ExtractionMutex);
+    addedOrResetMaterials.Swap(m_AddedOrResetMaterials);
+    modifiedMaterials.Swap(m_ModifiedMaterials);
+    removedMaterials.Swap(m_RemovedMaterials);
+  }
+
+  m_pPendingChanges = EZ_NEW(ezFrameAllocator::GetCurrentAllocator(), PendingChanges);
+  m_pPendingChanges->m_AddedOrModifiedMaterials.SetCount(addedOrResetMaterials.GetCount() + modifiedMaterials.GetCount());
+
+  // First, go through all added materials and register them.
+  ezUInt32 uiCurrentIndex = 0;
+  for (const ezMaterialResourceHandle& hMaterial : addedOrResetMaterials)
+  {
+    ExtractedMaterial& extractedMaterial = m_pPendingChanges->m_AddedOrModifiedMaterials[uiCurrentIndex];
+    ezResourceLock<ezMaterialResource> pMaterial(hMaterial, ezResourceAcquireMode::BlockTillLoaded);
+    if (pMaterial->m_DirtyFlags.IsSet(ezMaterialResource::DirtyFlags::FlattenHierarchy))
+    {
+      pMaterial->FlattenHierarchy();
+    }
+    RegisterMaterial(pMaterial.GetPointerNonConst());
+    ExtractMaterial(pMaterial.GetPointerNonConst(), extractedMaterial);
+    uiCurrentIndex++;
+  }
+
+  for (const ezMaterialResourceHandle& hMaterial : modifiedMaterials)
+  {
+    ExtractedMaterial& extractedMaterial = m_pPendingChanges->m_AddedOrModifiedMaterials[uiCurrentIndex];
+    ezResourceLock<ezMaterialResource> pMaterial(hMaterial, ezResourceAcquireMode::BlockTillLoaded);
+    ExtractMaterial(pMaterial.GetPointerNonConst(), extractedMaterial);
+    uiCurrentIndex++;
+  }
+
+  // RegisterMaterial might extend m_RemovedMaterials, so we have to copy the array after processing added materials. This is the case when the material shader was changed in which case we need to unregister the registration at the old shader and re-register on the new shader.
+  m_pPendingChanges->m_RemovedMaterials = removedMaterials;
 }
 
 void ezMaterialManager::RegisterMaterial(ezMaterialResource* pMaterial)
@@ -155,78 +228,6 @@ void ezMaterialManager::ExtractMaterial(ezMaterialResource* pMaterial, ezMateria
     }
   }
   pMaterial->m_DirtyFlags.Clear();
-}
-
-void ezMaterialManager::OnExtractionEvent(const ezRenderWorldExtractionEvent& e)
-{
-  // ezUInt32 uiDataIndex = ezRenderWorld::GetDataIndexForExtraction();
-  if (e.m_Type != ezRenderWorldExtractionEvent::Type::BeginExtraction)
-    return;
-
-  ExtractMaterialUpdates();
-}
-
-void ezMaterialManager::ExtractMaterialUpdates()
-{
-  EZ_ASSERT_DEBUG(m_pPendingChanges == nullptr, "OnRenderEvent should have been called to consume pending changes or ExtractMaterialUpdates was called twice.");
-
-  ezHashSet<ezMaterialResourceHandle> addedOrResetMaterials;
-  ezHashSet<ezMaterialResourceHandle> modifiedMaterials;
-  ezDynamicArray<MaterialRegistration> removedMaterials;
-  {
-    EZ_LOCK(m_ExtractionMutex);
-    addedOrResetMaterials.Swap(m_AddedOrResetMaterials);
-    modifiedMaterials.Swap(m_ModifiedMaterials);
-    removedMaterials.Swap(m_RemovedMaterials);
-  }
-
-  m_pPendingChanges = EZ_NEW(ezFrameAllocator::GetCurrentAllocator(), PendingChanges);
-  m_pPendingChanges->m_AddedOrModifiedMaterials.SetCount(addedOrResetMaterials.GetCount() + modifiedMaterials.GetCount());
-
-  // First, go through all added materials and register them.
-  ezUInt32 uiCurrentIndex = 0;
-  for (const ezMaterialResourceHandle& hMaterial : addedOrResetMaterials)
-  {
-    ExtractedMaterial& extractedMaterial = m_pPendingChanges->m_AddedOrModifiedMaterials[uiCurrentIndex];
-    ezResourceLock<ezMaterialResource> pMaterial(hMaterial, ezResourceAcquireMode::BlockTillLoaded);
-    if (pMaterial->m_DirtyFlags.IsSet(ezMaterialResource::DirtyFlags::FlattenHierarchy))
-    {
-      pMaterial->FlattenHierarchy();
-    }
-    RegisterMaterial(pMaterial.GetPointerNonConst());
-    ExtractMaterial(pMaterial.GetPointerNonConst(), extractedMaterial);
-    uiCurrentIndex++;
-  }
-
-  for (const ezMaterialResourceHandle& hMaterial : modifiedMaterials)
-  {
-    ExtractedMaterial& extractedMaterial = m_pPendingChanges->m_AddedOrModifiedMaterials[uiCurrentIndex];
-    ezResourceLock<ezMaterialResource> pMaterial(hMaterial, ezResourceAcquireMode::BlockTillLoaded);
-    ExtractMaterial(pMaterial.GetPointerNonConst(), extractedMaterial);
-    uiCurrentIndex++;
-  }
-
-  // RegisterMaterial might extend m_RemovedMaterials, so we have to copy the array after processing added materials. This is the case when the material shader was changed in which case we need to unregister the registration at the old shader and re-register on the new shader.
-  m_pPendingChanges->m_RemovedMaterials = removedMaterials;
-}
-
-void ezMaterialManager::OnRenderEvent(const ezGALDeviceEvent& e)
-{
-  switch (e.m_Type)
-  {
-    case ezGALDeviceEvent::BeforeShutdown:
-    {
-      Cleanup();
-    }
-    break;
-    case ezGALDeviceEvent::AfterBeginFrame:
-    {
-      ApplyMaterialChanges();
-    }
-    break;
-    default:
-      break;
-  }
 }
 
 void ezMaterialManager::ApplyMaterialChanges()
