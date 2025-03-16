@@ -26,13 +26,26 @@ EZ_BEGIN_SUBSYSTEM_DECLARATION(RendererCore, MaterialManager)
     EZ_DEFAULT_DELETE(pDummy);
   }
 
+  ON_HIGHLEVELSYSTEMS_STARTUP
+  {
+  }
+
+  ON_HIGHLEVELSYSTEMS_SHUTDOWN
+  {
+    ezMaterialManager::GetSingleton()->Cleanup();
+  }
+
 EZ_END_SUBSYSTEM_DECLARATION;
 // clang-format on
 
-const ezMaterialManager::MaterialData* ezMaterialManager::GetMaterialData(const ezMaterialResource* pMaterial) const
+const ezMaterialManager::MaterialData* ezMaterialManager::GetMaterialData(const ezMaterialResource* pMaterial)
 {
-  auto it = m_Materials.Find(pMaterial);
-  //EZ_ASSERT_DEV(it.IsValid(), "Loaded materials must always have a valid entry in m_Materials");
+  ezMaterialManager* pManager = GetSingleton();
+  if (!pManager)
+    return nullptr;
+
+  auto it = pManager->m_Materials.Find(pMaterial);
+  // EZ_ASSERT_DEV(it.IsValid(), "Loaded materials must always have a valid entry in m_Materials");
   return it.IsValid() ? &it.Value() : nullptr;
 }
 
@@ -47,27 +60,37 @@ ezMaterialManager::~ezMaterialManager()
 {
   ezRenderWorld::GetExtractionEvent().RemoveEventHandler(ezMakeDelegate(&ezMaterialManager::OnExtractionEvent, this));
   ezGALDevice::s_Events.RemoveEventHandler(ezMakeDelegate(&ezMaterialManager::OnRenderEvent, this));
+  Cleanup();
 }
 
 void ezMaterialManager::MaterialAddedOrReset(ezMaterialResource* pMaterial)
 {
-  EZ_LOCK(m_ExtractionMutex);
-  m_AddedOrResetMaterials.Insert(pMaterial->GetResourceHandle());
+  ezMaterialManager* pManager = GetSingleton();
+  if (!pManager)
+    return;
+  EZ_LOCK(pManager->m_ExtractionMutex);
+  pManager->m_AddedOrResetMaterials.Insert(pMaterial->GetResourceHandle());
 }
 
 void ezMaterialManager::MaterialModified(ezMaterialResourceHandle hMaterial)
 {
-  EZ_LOCK(m_ExtractionMutex);
-  m_ModifiedMaterials.Insert(hMaterial);
+  ezMaterialManager* pManager = GetSingleton();
+  if (!pManager)
+    return;
+  EZ_LOCK(pManager->m_ExtractionMutex);
+  pManager->m_ModifiedMaterials.Insert(hMaterial);
 }
 
 void ezMaterialManager::MaterialRemoved(ezMaterialResource* pMaterial)
 {
+  ezMaterialManager* pManager = GetSingleton();
+  if (!pManager)
+    return;
   if (pMaterial->m_MaterialId.IsInvalidated())
     return;
 
-  EZ_LOCK(m_ExtractionMutex);
-  m_RemovedMaterials.PushBack({pMaterial, pMaterial->m_hShader, pMaterial->m_MaterialId});
+  EZ_LOCK(pManager->m_ExtractionMutex);
+  pManager->m_RemovedMaterials.PushBack({pMaterial, pMaterial->m_hShader, pMaterial->m_MaterialId});
 }
 
 void ezMaterialManager::RegisterMaterial(ezMaterialResource* pMaterial)
@@ -140,15 +163,29 @@ void ezMaterialManager::OnExtractionEvent(const ezRenderWorldExtractionEvent& e)
   if (e.m_Type != ezRenderWorldExtractionEvent::Type::BeginExtraction)
     return;
 
-  EZ_ASSERT_DEBUG(m_pPendingChanges == nullptr, "OnRenderEvent should have been called to consume pending changes");
+  ExtractMaterialUpdates();
+}
 
-  EZ_LOCK(m_ExtractionMutex);
+void ezMaterialManager::ExtractMaterialUpdates()
+{
+  EZ_ASSERT_DEBUG(m_pPendingChanges == nullptr, "OnRenderEvent should have been called to consume pending changes or ExtractMaterialUpdates was called twice.");
+
+  ezHashSet<ezMaterialResourceHandle> addedOrResetMaterials;
+  ezHashSet<ezMaterialResourceHandle> modifiedMaterials;
+  ezDynamicArray<MaterialRegistration> removedMaterials;
+  {
+    EZ_LOCK(m_ExtractionMutex);
+    addedOrResetMaterials.Swap(m_AddedOrResetMaterials);
+    modifiedMaterials.Swap(m_ModifiedMaterials);
+    removedMaterials.Swap(m_RemovedMaterials);
+  }
+
   m_pPendingChanges = EZ_NEW(ezFrameAllocator::GetCurrentAllocator(), PendingChanges);
-  m_pPendingChanges->m_AddedOrModifiedMaterials.SetCount(m_AddedOrResetMaterials.GetCount() + m_ModifiedMaterials.GetCount());
+  m_pPendingChanges->m_AddedOrModifiedMaterials.SetCount(addedOrResetMaterials.GetCount() + modifiedMaterials.GetCount());
 
   // First, go through all added materials and register them.
   ezUInt32 uiCurrentIndex = 0;
-  for (const ezMaterialResourceHandle& hMaterial : m_AddedOrResetMaterials)
+  for (const ezMaterialResourceHandle& hMaterial : addedOrResetMaterials)
   {
     ExtractedMaterial& extractedMaterial = m_pPendingChanges->m_AddedOrModifiedMaterials[uiCurrentIndex];
     ezResourceLock<ezMaterialResource> pMaterial(hMaterial, ezResourceAcquireMode::BlockTillLoaded);
@@ -161,7 +198,7 @@ void ezMaterialManager::OnExtractionEvent(const ezRenderWorldExtractionEvent& e)
     uiCurrentIndex++;
   }
 
-  for (const ezMaterialResourceHandle& hMaterial : m_ModifiedMaterials)
+  for (const ezMaterialResourceHandle& hMaterial : modifiedMaterials)
   {
     ExtractedMaterial& extractedMaterial = m_pPendingChanges->m_AddedOrModifiedMaterials[uiCurrentIndex];
     ezResourceLock<ezMaterialResource> pMaterial(hMaterial, ezResourceAcquireMode::BlockTillLoaded);
@@ -170,21 +207,36 @@ void ezMaterialManager::OnExtractionEvent(const ezRenderWorldExtractionEvent& e)
   }
 
   // RegisterMaterial might extend m_RemovedMaterials, so we have to copy the array after processing added materials. This is the case when the material shader was changed in which case we need to unregister the registration at the old shader and re-register on the new shader.
-  m_pPendingChanges->m_RemovedMaterials = m_RemovedMaterials;
-
-  m_AddedOrResetMaterials.Clear();
-  m_ModifiedMaterials.Clear();
-  m_RemovedMaterials.Clear();
+  m_pPendingChanges->m_RemovedMaterials = removedMaterials;
 }
 
 void ezMaterialManager::OnRenderEvent(const ezGALDeviceEvent& e)
 {
-  // ezUInt32 uiDataIndex = ezRenderWorld::GetDataIndexForRendering();
-  if (e.m_Type != ezGALDeviceEvent::BeforeBeginFrame)
-    return;
+  switch (e.m_Type)
+  {
+    case ezGALDeviceEvent::BeforeShutdown:
+    {
+      Cleanup();
+    }
+    break;
+    case ezGALDeviceEvent::AfterBeginFrame:
+    {
+      ApplyMaterialChanges();
+    }
+    break;
+    default:
+      break;
+  }
+}
 
+void ezMaterialManager::ApplyMaterialChanges()
+{
   if (m_pPendingChanges == nullptr)
-    return;
+  {
+    // If no pending changes are present, we will start extracting here.
+    // This is usually the case for applications that don't use extraction like tests und basic sample apps.
+    ExtractMaterialUpdates();
+  }
 
   EZ_LOCK(m_MaterialShaderMutex);
   // Execute deletions first
@@ -252,6 +304,16 @@ void ezMaterialManager::OnRenderEvent(const ezGALDeviceEvent& e)
   m_pPendingChanges.Clear();
 }
 
+void ezMaterialManager::Cleanup()
+{
+  m_AddedOrResetMaterials.Clear();
+  m_ModifiedMaterials.Clear();
+  m_RemovedMaterials.Clear();
+  m_pPendingChanges.Clear();
+  m_MaterialShaders.Clear();
+  m_Materials.Clear();
+}
+
 ezMaterialManager::MaterialShaderConstants& ezMaterialManager::GetShaderConstants(ezShaderResourceHandle hShader)
 {
   auto it = m_MaterialShaders.FindOrAdd(hShader);
@@ -261,6 +323,7 @@ ezMaterialManager::MaterialShaderConstants& ezMaterialManager::GetShaderConstant
   }
   return *it.Value();
 }
+
 
 /////////////////////////////////////////////////
 // MaterialShaderConstants

@@ -31,12 +31,15 @@ public:
   };
 
 public:
-  const MaterialData* GetMaterialData(const ezMaterialResource* pMaterial) const;
+  static void MaterialAddedOrReset(ezMaterialResource* pMaterial);
+  static void MaterialModified(ezMaterialResourceHandle hMaterial);
+  static void MaterialRemoved(ezMaterialResource* pMaterial);
+  static const MaterialData* GetMaterialData(const ezMaterialResource* pMaterial);
 
 private:
   EZ_MAKE_SUBSYSTEM_STARTUP_FRIEND(RendererCore, MaterialManager);
   friend class ezMemoryUtils;
-  friend class ezMaterialResource;
+  //friend class ezMaterialResource;
 
   class MaterialShaderConstants
   {
@@ -112,15 +115,14 @@ private:
   ezMaterialManager();
   ~ezMaterialManager();
 
-  void MaterialAddedOrReset(ezMaterialResource* pMaterial);
-  void MaterialModified(ezMaterialResourceHandle hMaterial);
-  void MaterialRemoved(ezMaterialResource* pMaterial);
-
-  void RegisterMaterial(ezMaterialResource* pMaterial);
-  static void ExtractMaterial(ezMaterialResource* pMaterial, ExtractedMaterial& extractedMaterial);
-
   void OnExtractionEvent(const ezRenderWorldExtractionEvent& e);
   void OnRenderEvent(const ezGALDeviceEvent& e);
+
+  void ExtractMaterialUpdates();
+  void RegisterMaterial(ezMaterialResource* pMaterial);
+  static void ExtractMaterial(ezMaterialResource* pMaterial, ExtractedMaterial& extractedMaterial);
+  void ApplyMaterialChanges();
+  void Cleanup();
 
   MaterialShaderConstants& GetShaderConstants(ezShaderResourceHandle hShader);
 

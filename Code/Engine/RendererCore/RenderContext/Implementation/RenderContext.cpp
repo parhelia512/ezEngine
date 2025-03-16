@@ -1124,6 +1124,30 @@ ezShaderPermutationResource* ezRenderContext::ApplyShaderState()
     return nullptr;
   }
 
+  {
+    ezResourceLock<ezShaderResource> pShader(m_hActiveShader, m_bAllowAsyncShaderLoading ? ezResourceAcquireMode::AllowLoadingFallback : ezResourceAcquireMode::BlockTillLoaded);
+    if (pShader.GetAcquireResult() == ezResourceAcquireResult::Final && pShaderPermutation->GetResourceHandle() == m_hActiveShaderPermutation)
+    {
+      ezShaderConstantBufferLayout* pLayout2 = pShader->GetConstantBufferLayout().Borrow();
+
+      ezTempHashedString sConstantBufferName("ezMaterialConstants");
+      const ezGALShader* pShader = ezGALDevice::GetDefaultDevice()->GetShader(pShaderPermutation->GetGALShader());
+      if (pShader != nullptr)
+      {
+        const ezShaderResourceBinding* pBinding = pShader->GetShaderResourceBinding(sConstantBufferName);
+        const ezShaderConstantBufferLayout* pLayout = pBinding != nullptr ? pBinding->m_pLayout : nullptr;
+        EZ_ASSERT_DEBUG((pBinding != nullptr) == (pLayout != nullptr), "");
+        if (pLayout2 && pLayout && *pLayout2 != *pLayout)
+        {
+          EZ_REPORT_FAILURE("Parsing missmatch");
+          ezLog::Info("bla");
+        }
+
+
+      }
+    }
+  }
+
   m_hActiveGALShader = pShaderPermutation->GetGALShader();
   EZ_ASSERT_DEV(!m_hActiveGALShader.IsInvalidated(), "Invalid GAL Shader handle.");
 
@@ -1160,7 +1184,7 @@ void ezRenderContext::ApplyMaterialState()
 
   if (m_hNewMaterial != m_hMaterial)
   {
-    const ezMaterialManager::MaterialData* data = ezMaterialManager::GetSingleton()->GetMaterialData(pMaterial);
+    const ezMaterialManager::MaterialData* data = ezMaterialManager::GetMaterialData(pMaterial);
     if (data == nullptr || data->m_ConstantBuffer.IsInvalidated())
     {
       BindShaderInternal(ezShaderResourceHandle(), ezShaderBindFlags::Default);

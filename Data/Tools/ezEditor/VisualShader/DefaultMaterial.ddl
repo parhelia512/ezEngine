@@ -146,7 +146,8 @@ float MaskThreshold @Default($prop0);
   string %CodePixelSamplers { "" }
   string %CodePixelConstants { "" }
   string %CodeMaterialConstants { "
-  
+
+#include <Shaders/Common/GlobalConstants.h>
 CONSTANT_BUFFER(ezMaterialConstants, 1)
 {
   FLOAT1(MaskThreshold);

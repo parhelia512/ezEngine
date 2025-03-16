@@ -165,20 +165,17 @@ ezStatus ezVisualShaderCodeGenerator::GenerateVisualShader(const ezDocumentNodeM
 
   EZ_SUCCEED_OR_RETURN(GenerateNode(m_pMainNode));
 
-  const ezStringBuilder sMaterialCBDefine("#define VSE_CONSTANTS ", m_sShaderMaterialCB);
+  ezStringBuilder sMaterialConstants = m_sShaderMaterialConstants;
+  sMaterialConstants.ReplaceAll("VSE_CONSTANTS", m_sShaderMaterialCB);
 
   m_sFinalShaderCode.Set("[PLATFORMS]\nALL\n\n");
   m_sFinalShaderCode.Append("[PERMUTATIONS]\n\n", m_sShaderPermutations, "\n");
   m_sFinalShaderCode.Append("[MATERIALPARAMETER]\n\n", m_sShaderMaterialParam, "\n");
   m_sFinalShaderCode.Append("[RENDERSTATE]\n\n", m_sShaderRenderState, "\n");
-  m_sFinalShaderCode.Append("[MATERIALCONSTANTS]\n\n", sMaterialCBDefine, "\n\n");
-  m_sFinalShaderCode.Append(m_sShaderMaterialConstants, "\n");
-  m_sFinalShaderCode.Append("[VERTEXSHADER]\n\n", sMaterialCBDefine, "\n\n");
-  m_sFinalShaderCode.Append(m_sShaderVertexDefines, "\n", m_sShaderVertex, "\n");
-  m_sFinalShaderCode.Append("[GEOMETRYSHADER]\n\n", sMaterialCBDefine, "\n\n");
-  m_sFinalShaderCode.Append(m_sShaderGeometryDefines, "\n", m_sShaderGeometry, "\n");
-  m_sFinalShaderCode.Append("[PIXELSHADER]\n\n", sMaterialCBDefine, "\n\n");
-  m_sFinalShaderCode.Append(m_sShaderPixelDefines, "\n", m_sShaderPixelIncludes, "\n");
+  m_sFinalShaderCode.Append("[MATERIALCONSTANTS]\n\n", sMaterialConstants, "\n");
+  m_sFinalShaderCode.Append("[VERTEXSHADER]\n\n", m_sShaderVertexDefines, "\n", m_sShaderVertex, "\n");
+  m_sFinalShaderCode.Append("[GEOMETRYSHADER]\n\n", m_sShaderGeometryDefines, "\n", m_sShaderGeometry, "\n");
+  m_sFinalShaderCode.Append("[PIXELSHADER]\n\n", m_sShaderPixelDefines, "\n", m_sShaderPixelIncludes, "\n");
   m_sFinalShaderCode.Append(m_sShaderPixelConstants, "\n", m_sShaderPixelSamplers, "\n", m_sShaderPixelBody, "\n");
 
   for (auto it = m_Nodes.GetIterator(); it.IsValid(); ++it)

@@ -251,7 +251,7 @@ ezStandardInputDevice::~ezStandardInputDevice()
 
 void ezStandardInputDevice::SetShowMouseCursor(bool bShow)
 {
-  glfwSetInputMode(m_pWindow, GLFW_CURSOR, bShow ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
+  //glfwSetInputMode(m_pWindow, GLFW_CURSOR, bShow ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
 }
 
 bool ezStandardInputDevice::GetShowMouseCursor() const

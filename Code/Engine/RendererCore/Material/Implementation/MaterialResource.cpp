@@ -139,7 +139,7 @@ ezMaterialResource::ezMaterialResource()
 
 ezMaterialResource::~ezMaterialResource()
 {
-  ezMaterialManager::GetSingleton()->MaterialRemoved(this);
+  ezMaterialManager::MaterialRemoved(this);
 }
 
 ezHashedString ezMaterialResource::GetPermutationValue(const ezTempHashedString& sName)
@@ -316,6 +316,8 @@ ezResourceLoadDesc ezMaterialResource::UnloadData(Unload WhatToUnload)
 
 ezResourceLoadDesc ezMaterialResource::UpdateContent(ezStreamReader* pOuterStream)
 {
+  // Setting all dirty flags here outside of SetModified prevents the setters being used from calling into the ezMaterialManager before the resource is fully loaded.
+  m_DirtyFlags.SetValue(DirtyFlags::ResourceCreation);
   m_mDesc.Clear();
   m_mOriginalDesc.Clear();
   m_mFlattenedDesc.Clear();
@@ -641,8 +643,9 @@ ezResourceLoadDesc ezMaterialResource::UpdateContent(ezStreamReader* pOuterStrea
   m_mOriginalDesc = m_mDesc;
 
   // We add the material right away instead of during extraction / begin rendering to make sure the materialId can be used right away.
-  ezMaterialManager::GetSingleton()->MaterialAddedOrReset(this);
-  SetModified(DirtyFlags::ResourceCreation);
+  //FlattenHierarchy();
+  ezMaterialManager::MaterialAddedOrReset(this);
+  //SetModified(DirtyFlags::ResourceCreation);
   return res;
 }
 
@@ -674,8 +677,9 @@ EZ_RESOURCE_IMPLEMENT_CREATEABLE(ezMaterialResource, ezMaterialResourceDescripto
   }
 
   // We add the material right away instead of during extraction / begin rendering to make sure the materialId can be used right away.
-  ezMaterialManager::GetSingleton()->MaterialAddedOrReset(this);
   SetModified(DirtyFlags::ResourceCreation);
+  //FlattenHierarchy();
+  ezMaterialManager::MaterialAddedOrReset(this);
   return res;
 }
 
@@ -684,8 +688,9 @@ void ezMaterialResource::OnBaseMaterialModified(const ezMaterialResource* pModif
   EZ_ASSERT_DEV(m_mDesc.m_hBaseMaterial == pModifiedMaterial, "Implementation error");
 
   // #TODO Remove base material inheritance at runtime
-  ezMaterialManager::GetSingleton()->MaterialAddedOrReset(this);
   SetModified(DirtyFlags::ResourceReset);
+  //FlattenHierarchy();
+  ezMaterialManager::MaterialAddedOrReset(this);
 }
 
 void ezMaterialResource::AddPermutationVar(ezStringView sName, ezStringView sValue)
@@ -711,7 +716,7 @@ void ezMaterialResource::SetModified(ezMaterialResource::DirtyFlags::Enum flag)
   m_DirtyFlags |= flag;
   if (!bAlreadyModified)
   {
-    ezMaterialManager::GetSingleton()->MaterialModified(GetResourceHandle());
+    ezMaterialManager::MaterialModified(GetResourceHandle());
   }
   m_ModifiedEvent.Broadcast(this);
 }
@@ -719,6 +724,7 @@ void ezMaterialResource::SetModified(ezMaterialResource::DirtyFlags::Enum flag)
 
 void ezMaterialResource::FlattenHierarchy()
 {
+  //EZ_ASSERT_DEBUG(!m_FlattenMutex.IsLocked(), "");
   EZ_LOCK(m_FlattenMutex);
   if (!m_DirtyFlags.IsSet(DirtyFlags::FlattenHierarchy))
     return;

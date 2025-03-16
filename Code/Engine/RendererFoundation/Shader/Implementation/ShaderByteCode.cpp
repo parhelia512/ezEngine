@@ -206,7 +206,12 @@ bool ezShaderConstantBufferLayout::operator==(const ezShaderConstantBufferLayout
   {
     const ezShaderConstant& a = m_Constants[i];
     const ezShaderConstant& b = rhs.m_Constants[i];
-    if (a.m_sName != b.m_sName || a.m_Type != b.m_Type || a.m_uiArrayElements != b.m_uiArrayElements || a.m_uiOffset != b.m_uiOffset)
+
+    // Some platforms return bool or int1 for a bool type in a shader.
+    ezEnum<ezShaderConstant::Type> aType = a.m_Type == ezShaderConstant::Type::Bool ? ezEnum<ezShaderConstant::Type>(ezShaderConstant::Type::Int1) : a.m_Type;
+    ezEnum<ezShaderConstant::Type> bType = b.m_Type == ezShaderConstant::Type::Bool ? ezEnum<ezShaderConstant::Type>(ezShaderConstant::Type::Int1) : b.m_Type;
+
+    if (a.m_sName != b.m_sName || aType != bType || a.m_uiArrayElements != b.m_uiArrayElements || a.m_uiOffset != b.m_uiOffset)
       return false;
   }
   return true;
