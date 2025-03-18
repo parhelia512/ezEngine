@@ -147,6 +147,7 @@ void ezBeamComponent::OnMsgExtractRenderData(ezMsgExtractRenderData& msg) const
   if (!m_hMesh.IsValid() || !m_hMaterial.IsValid())
     return;
 
+  #if 0
   ezMeshRenderData* pRenderData = ezCreateRenderDataForThisFrame<ezMeshRenderData>(GetOwner());
   {
     pRenderData->m_GlobalTransform = GetOwner()->GetGlobalTransform();
@@ -165,6 +166,7 @@ void ezBeamComponent::OnMsgExtractRenderData(ezMsgExtractRenderData& msg) const
   ezRenderData::Category category = pMaterial->GetRenderDataCategory();
 
   msg.AddRenderData(pRenderData, category, ezRenderData::Caching::Never);
+#endif
 }
 
 void ezBeamComponent::SetTargetObject(const char* szReference)

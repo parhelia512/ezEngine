@@ -175,7 +175,7 @@ namespace
   {
     FillLightData(out_perLightData, pPointLightRenderData, LIGHT_TYPE_POINT);
 
-    out_perLightData.position = pPointLightRenderData->m_GlobalTransform.m_vPosition;
+    // out_perLightData.position = pPointLightRenderData->m_GlobalTransform.m_vPosition;
     out_perLightData.invSqrAttRadius = 1.0f / (pPointLightRenderData->m_fRange * pPointLightRenderData->m_fRange);
   }
 
@@ -183,8 +183,8 @@ namespace
   {
     FillLightData(out_perLightData, pSpotLightRenderData, LIGHT_TYPE_SPOT);
 
-    out_perLightData.direction = ezShaderUtils::Float3ToRGB10(pSpotLightRenderData->m_GlobalTransform.m_qRotation * ezVec3(-1, 0, 0));
-    out_perLightData.position = pSpotLightRenderData->m_GlobalTransform.m_vPosition;
+    // out_perLightData.direction = ezShaderUtils::Float3ToRGB10(pSpotLightRenderData->m_GlobalTransform.m_qRotation * ezVec3(-1, 0, 0));
+    // out_perLightData.position = pSpotLightRenderData->m_GlobalTransform.m_vPosition;
     out_perLightData.invSqrAttRadius = 1.0f / (pSpotLightRenderData->m_fRange * pSpotLightRenderData->m_fRange);
 
     const float fCosInner = ezMath::Cos(pSpotLightRenderData->m_InnerSpotAngle * 0.5f);
@@ -198,7 +198,7 @@ namespace
   {
     FillLightData(out_perLightData, pDirLightRenderData, LIGHT_TYPE_DIR);
 
-    out_perLightData.direction = ezShaderUtils::Float3ToRGB10(pDirLightRenderData->m_GlobalTransform.m_qRotation * ezVec3(-1, 0, 0));
+    // out_perLightData.direction = ezShaderUtils::Float3ToRGB10(pDirLightRenderData->m_GlobalTransform.m_qRotation * ezVec3(-1, 0, 0));
   }
 
   void FillFillLightData(ezPerLightData& out_perLightData, const ezFillLightRenderData* pFillLightRenderData)
@@ -226,7 +226,7 @@ namespace
     out_perLightData.colorAndType = *reinterpret_cast<ezUInt32*>(&lightColor.r);
     out_perLightData.specularMultiplier = 0.0f; // no specular for fill lights
 
-    out_perLightData.position = pFillLightRenderData->m_GlobalTransform.m_vPosition;
+    // out_perLightData.position = pFillLightRenderData->m_GlobalTransform.m_vPosition;
     out_perLightData.invSqrAttRadius = 1.0f / pFillLightRenderData->m_fRange;
 
     const float fFalloffExponent = ezMath::Max(pFillLightRenderData->m_fFalloffExponent, 0.001f);
@@ -235,6 +235,7 @@ namespace
 
   void FillDecalData(ezPerDecalData& out_perDecalData, const ezDecalRenderData* pDecalRenderData)
   {
+#if 0
     ezVec3 position = pDecalRenderData->m_GlobalTransform.m_vPosition;
     ezVec3 dirForwards = pDecalRenderData->m_GlobalTransform.m_qRotation * ezVec3(1.0f, 0.0, 0.0f);
     ezVec3 dirUp = pDecalRenderData->m_GlobalTransform.m_qRotation * ezVec3(0.0f, 0.0, 1.0f);
@@ -260,10 +261,12 @@ namespace
     out_perDecalData.normalAtlasOffset = pDecalRenderData->m_uiNormalAtlasOffset;
     out_perDecalData.ormAtlasScale = pDecalRenderData->m_uiORMAtlasScale;
     out_perDecalData.ormAtlasOffset = pDecalRenderData->m_uiORMAtlasOffset;
+#endif
   }
 
   void FillReflectionProbeData(ezPerReflectionProbeData& out_perReflectionProbeData, const ezReflectionProbeRenderData* pReflectionProbeRenderData)
   {
+#if 0
     ezVec3 position = pReflectionProbeRenderData->m_GlobalTransform.m_vPosition;
     ezVec3 scale = pReflectionProbeRenderData->m_GlobalTransform.m_vScale.CompMul(pReflectionProbeRenderData->m_vHalfExtents);
 
@@ -286,6 +289,7 @@ namespace
     out_perReflectionProbeData.PositiveFalloff = pReflectionProbeRenderData->m_vPositiveFalloff.GetAsVec4(0.0f);
     out_perReflectionProbeData.NegativeFalloff = pReflectionProbeRenderData->m_vNegativeFalloff.GetAsVec4(0.0f);
     out_perReflectionProbeData.Index = pReflectionProbeRenderData->m_uiIndex;
+#endif
   }
 
 

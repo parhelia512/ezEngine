@@ -159,28 +159,28 @@ void ezSpotLightComponent::OnMsgExtractRenderData(ezMsgExtractRenderData& msg) c
 
   auto pRenderData = ezCreateRenderDataForThisFrame<ezSpotLightRenderData>(GetOwner());
 
-  pRenderData->m_GlobalTransform = t;
-  pRenderData->m_LightColor = GetEffectiveColor();
-  pRenderData->m_fIntensity = m_fIntensity;
-  pRenderData->m_fSpecularMultiplier = m_fSpecularMultiplier;
-  pRenderData->m_fRange = m_fEffectiveRange;
-  pRenderData->m_InnerSpotAngle = m_InnerSpotAngle;
-  pRenderData->m_OuterSpotAngle = m_OuterSpotAngle;
-  // pRenderData->m_hProjectedTexture = m_hProjectedTexture;
+  //pRenderData->m_GlobalTransform = t;
+  //pRenderData->m_LightColor = GetEffectiveColor();
+  //pRenderData->m_fIntensity = m_fIntensity;
+  //pRenderData->m_fSpecularMultiplier = m_fSpecularMultiplier;
+  //pRenderData->m_fRange = m_fEffectiveRange;
+  //pRenderData->m_InnerSpotAngle = m_InnerSpotAngle;
+  //pRenderData->m_OuterSpotAngle = m_OuterSpotAngle;
+  //// pRenderData->m_hProjectedTexture = m_hProjectedTexture;
 
-  if (m_bCastShadows && fShadowFadeOut > 0.0f)
-  {
-    pRenderData->FillShadowDataOffsetAndFadeOut(ezShadowPool::AddSpotLight(this, fScreenSpaceSize, msg.m_pView), fShadowFadeOut);
-  }
-  else
-  {
-    pRenderData->m_uiShadowDataOffsetAndFadeOut = 0;
-  }
+  //if (m_bCastShadows && fShadowFadeOut > 0.0f)
+  //{
+  //  pRenderData->FillShadowDataOffsetAndFadeOut(ezShadowPool::AddSpotLight(this, fScreenSpaceSize, msg.m_pView), fShadowFadeOut);
+  //}
+  //else
+  //{
+  //  pRenderData->m_uiShadowDataOffsetAndFadeOut = 0;
+  //}
 
-  pRenderData->FillBatchIdAndSortingKey(fScreenSpaceSize);
+  //pRenderData->FillBatchIdAndSortingKey(fScreenSpaceSize);
 
-  ezRenderData::Caching::Enum caching = m_bCastShadows ? ezRenderData::Caching::Never : ezRenderData::Caching::IfStatic;
-  msg.AddRenderData(pRenderData, ezDefaultRenderDataCategories::Light, caching);
+  //ezRenderData::Caching::Enum caching = m_bCastShadows ? ezRenderData::Caching::Never : ezRenderData::Caching::IfStatic;
+  //msg.AddRenderData(pRenderData, ezDefaultRenderDataCategories::Light, caching);
 }
 
 void ezSpotLightComponent::SerializeComponent(ezWorldWriter& inout_stream) const

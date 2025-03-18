@@ -8,7 +8,6 @@
 #include <Foundation/Utilities/GraphicsUtils.h>
 #include <RendererCore/Meshes/CustomMeshComponent.h>
 #include <RendererCore/Meshes/DynamicMeshBufferResource.h>
-#include <RendererCore/Pipeline/InstanceDataProvider.h>
 #include <RendererCore/Pipeline/RenderDataBatch.h>
 #include <RendererCore/Pipeline/RenderPipeline.h>
 #include <RendererCore/Pipeline/RenderPipelinePass.h>
@@ -192,7 +191,7 @@ void ezCustomMeshComponent::OnMsgExtractRenderData(ezMsgExtractRenderData& msg) 
 
   ezResourceLock<ezDynamicMeshBufferResource> pMesh(m_hDynamicMesh, ezResourceAcquireMode::BlockTillLoaded);
 
-  ezCustomMeshRenderData* pRenderData = ezCreateRenderDataForThisFrame<ezCustomMeshRenderData>(GetOwner());
+  /*ezCustomMeshRenderData* pRenderData = ezCreateRenderDataForThisFrame<ezCustomMeshRenderData>(GetOwner());
   {
     pRenderData->m_GlobalTransform = GetOwner()->GetGlobalTransform();
     pRenderData->m_GlobalBounds = GetOwner()->GetGlobalBounds();
@@ -211,7 +210,7 @@ void ezCustomMeshComponent::OnMsgExtractRenderData(ezMsgExtractRenderData& msg) 
   ezRenderData::Category category = pMaterial->GetRenderDataCategory();
   bool bDontCacheYet = pMaterial.GetAcquireResult() == ezResourceAcquireResult::LoadingFallback;
 
-  msg.AddRenderData(pRenderData, category, bDontCacheYet ? ezRenderData::Caching::Never : ezRenderData::Caching::IfStatic);
+  msg.AddRenderData(pRenderData, category, bDontCacheYet ? ezRenderData::Caching::Never : ezRenderData::Caching::IfStatic);*/
 }
 
 void ezCustomMeshComponent::OnActivated()
@@ -267,8 +266,8 @@ EZ_END_DYNAMIC_REFLECTED_TYPE;
 
 void ezCustomMeshRenderData::FillSortingKey()
 {
-  m_uiFlipWinding = m_GlobalTransform.HasMirrorScaling() ? 1 : 0;
-  m_uiUniformScale = m_GlobalTransform.ContainsUniformScale() ? 1 : 0;
+  //m_uiFlipWinding = m_GlobalTransform.HasMirrorScaling() ? 1 : 0;
+  //m_uiUniformScale = m_GlobalTransform.ContainsUniformScale() ? 1 : 0;
 
   const ezUInt32 uiMeshIDHash = ezHashingUtils::StringHashTo32(m_hMesh.GetResourceIDHash());
   const ezUInt32 uiMaterialIDHash = m_hMaterial.IsValid() ? ezHashingUtils::StringHashTo32(m_hMaterial.GetResourceIDHash()) : 0;
@@ -311,6 +310,7 @@ void ezCustomMeshRenderer::GetSupportedRenderDataTypes(ezHybridArray<const ezRTT
 
 void ezCustomMeshRenderer::RenderBatch(const ezRenderViewContext& renderViewContext, const ezRenderPipelinePass* pPass, const ezRenderDataBatch& batch) const
 {
+  #if 0
   ezRenderContext* pRenderContext = renderViewContext.m_pRenderContext;
   ezGALCommandEncoder* pGALCommandEncoder = pRenderContext->GetCommandEncoder();
 
@@ -371,6 +371,7 @@ void ezCustomMeshRenderer::RenderBatch(const ezRenderViewContext& renderViewCont
 
     renderViewContext.m_pRenderContext->DrawMeshBuffer(pRenderData->m_uiNumPrimitives, pRenderData->m_uiFirstPrimitive).IgnoreResult();
   }
+  #endif
 }
 
 

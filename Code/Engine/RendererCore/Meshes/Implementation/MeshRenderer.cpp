@@ -1,10 +1,8 @@
 #include <RendererCore/RendererCorePCH.h>
 
 #include <RendererCore/Debug/DebugRenderer.h>
-#include <RendererCore/Meshes/Implementation/MeshRendererUtils.h>
 #include <RendererCore/Meshes/InstancedMeshComponent.h>
 #include <RendererCore/Meshes/MeshRenderer.h>
-#include <RendererCore/Pipeline/InstanceDataProvider.h>
 #include <RendererCore/Pipeline/RenderPipeline.h>
 #include <RendererCore/Pipeline/RenderPipelinePass.h>
 #include <RendererCore/RenderContext/RenderContext.h>
@@ -39,6 +37,7 @@ void ezMeshRenderer::GetSupportedRenderDataCategories(ezHybridArray<ezRenderData
 
 void ezMeshRenderer::RenderBatch(const ezRenderViewContext& renderViewContext, const ezRenderPipelinePass* pPass, const ezRenderDataBatch& batch) const
 {
+  #if 0
   ezRenderContext* pContext = renderViewContext.m_pRenderContext;
 
   const ezMeshRenderData* pRenderData = batch.GetFirstData<ezMeshRenderData>();
@@ -121,6 +120,7 @@ void ezMeshRenderer::RenderBatch(const ezRenderViewContext& renderViewContext, c
 
     pContext->DrawMeshBuffer(meshPart.m_uiPrimitiveCount, meshPart.m_uiFirstPrimitive, uiInstanceCount).IgnoreResult();
   }
+  #endif
 }
 
 void ezMeshRenderer::SetAdditionalData(const ezRenderViewContext& renderViewContext, const ezMeshRenderData* pRenderData) const
@@ -135,7 +135,7 @@ void ezMeshRenderer::FillPerInstanceData(ezArrayPtr<ezPerInstanceData> instanceD
 
   for (auto it = batch.GetIterator<ezMeshRenderData>(uiStartIndex, uiCount); it.IsValid(); ++it)
   {
-    ezInternal::FillPerInstanceData(instanceData[uiCurrentIndex], it);
+    //ezInternal::FillPerInstanceData(instanceData[uiCurrentIndex], it);
 
     ++uiCurrentIndex;
   }

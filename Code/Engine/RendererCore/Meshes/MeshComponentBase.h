@@ -118,5 +118,5 @@ protected:
   ezVec4 m_vCustomData = ezVec4(0, 1, 0, 1);
   float m_fSortingDepthOffset = 0.0f;
 
-  ezUInt32 m_uiInstanceDataOffset = ezInvalidIndex;
+  mutable ezUInt32 m_uiInstanceDataOffset = ezInvalidIndex;
 };

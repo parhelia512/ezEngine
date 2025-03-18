@@ -248,7 +248,7 @@ void ezClusteredDataExtractor::PostSortAndBatch(const ezView& view, const ezDyna
         {
           FillPointLightData(m_TempLightData.ExpandAndGetRef(), pPointLightRenderData);
 
-          ezSimdBSphere pointLightSphere = ezSimdBSphere(ezSimdConversion::ToVec3(pPointLightRenderData->m_GlobalTransform.m_vPosition), pPointLightRenderData->m_fRange);
+          /*ezSimdBSphere pointLightSphere = ezSimdBSphere(ezSimdConversion::ToVec3(pPointLightRenderData->m_GlobalTransform.m_vPosition), pPointLightRenderData->m_fRange);
           RasterizeSphere(pointLightSphere, uiLightIndex, viewMatrix, projectionMatrix, m_TempLightsClusters.GetData(), m_ClusterBoundingSpheres.GetData());
 
           if (false)
@@ -262,7 +262,7 @@ void ezClusteredDataExtractor::PostSortAndBatch(const ezView& view, const ezDyna
 
             ezRectFloat rect(minX, minY, maxX - minX, maxY - minY);
             ezDebugRenderer::Draw2DRectangle(view.GetHandle(), rect, 0.0f, ezColor::Blue.WithAlpha(0.3f));
-          }
+          }*/
         }
         else if (auto pSpotLightRenderData = ezDynamicCast<const ezSpotLightRenderData*>(it))
         {
@@ -270,12 +270,12 @@ void ezClusteredDataExtractor::PostSortAndBatch(const ezView& view, const ezDyna
 
           ezAngle halfAngle = pSpotLightRenderData->m_OuterSpotAngle / 2.0f;
 
-          BoundingCone cone;
+          /*BoundingCone cone;
           cone.m_PositionAndRange = ezSimdConversion::ToVec3(pSpotLightRenderData->m_GlobalTransform.m_vPosition);
           cone.m_PositionAndRange.SetW(pSpotLightRenderData->m_fRange);
           cone.m_ForwardDir = ezSimdConversion::ToVec3(pSpotLightRenderData->m_GlobalTransform.m_qRotation * ezVec3(1.0f, 0.0f, 0.0f));
           cone.m_SinCosAngle = ezSimdVec4f(ezMath::Sin(halfAngle), ezMath::Cos(halfAngle), 0.0f);
-          RasterizeSpotLight(cone, uiLightIndex, viewMatrix, projectionMatrix, m_TempLightsClusters.GetData(), m_ClusterBoundingSpheres.GetData());
+          RasterizeSpotLight(cone, uiLightIndex, viewMatrix, projectionMatrix, m_TempLightsClusters.GetData(), m_ClusterBoundingSpheres.GetData());*/
         }
         else if (auto pDirLightRenderData = ezDynamicCast<const ezDirectionalLightRenderData*>(it))
         {
@@ -287,15 +287,15 @@ void ezClusteredDataExtractor::PostSortAndBatch(const ezView& view, const ezDyna
         {
           FillFillLightData(m_TempLightData.ExpandAndGetRef(), pFillLightRenderData);
 
-          ezSimdBSphere fillLightSphere = ezSimdBSphere(ezSimdConversion::ToVec3(pFillLightRenderData->m_GlobalTransform.m_vPosition), pFillLightRenderData->m_fRange);
-          RasterizeSphere(fillLightSphere, uiLightIndex, viewMatrix, projectionMatrix, m_TempLightsClusters.GetData(), m_ClusterBoundingSpheres.GetData());
+          /*ezSimdBSphere fillLightSphere = ezSimdBSphere(ezSimdConversion::ToVec3(pFillLightRenderData->m_GlobalTransform.m_vPosition), pFillLightRenderData->m_fRange);
+          RasterizeSphere(fillLightSphere, uiLightIndex, viewMatrix, projectionMatrix, m_TempLightsClusters.GetData(), m_ClusterBoundingSpheres.GetData());*/
         }
         else if (auto pFogRenderData = ezDynamicCast<const ezFogRenderData*>(it))
         {
-          float fogBaseHeight = pFogRenderData->m_GlobalTransform.m_vPosition.z;
+          const float fogBaseHeight = pFogRenderData->m_fBaseHeight;
           float fogHeightFalloff = pFogRenderData->m_fHeightFalloff > 0.0f ? ezMath::Ln(0.0001f) / pFogRenderData->m_fHeightFalloff : 0.0f;
 
-          float fogAtCameraPos = fogHeightFalloff * (pCamera->GetPosition().z - fogBaseHeight);
+          const float fogAtCameraPos = fogHeightFalloff * (pCamera->GetPosition().z - fogBaseHeight);
           if (fogAtCameraPos >= 80.0f) // Prevent infs
           {
             fogHeightFalloff = 0.0f;
@@ -348,7 +348,7 @@ void ezClusteredDataExtractor::PostSortAndBatch(const ezView& view, const ezDyna
         {
           FillDecalData(m_TempDecalData.ExpandAndGetRef(), pDecalRenderData);
 
-          RasterizeBox(pDecalRenderData->m_GlobalTransform, uiDecalIndex, invViewMatrix, viewProjectionMatrix, m_TempDecalsClusters.GetData(), m_ClusterBoundingSpheres.GetData());
+          // RasterizeBox(pDecalRenderData->m_GlobalTransform, uiDecalIndex, invViewMatrix, viewProjectionMatrix, m_TempDecalsClusters.GetData(), m_ClusterBoundingSpheres.GetData());
         }
         else
         {
@@ -387,6 +387,7 @@ void ezClusteredDataExtractor::PostSortAndBatch(const ezView& view, const ezDyna
           auto& probeData = m_TempReflectionProbeData.ExpandAndGetRef();
           FillReflectionProbeData(probeData, pReflectionProbeRenderData);
 
+#if 0
           const ezVec3 vFullScale = pReflectionProbeRenderData->m_vHalfExtents.CompMul(pReflectionProbeRenderData->m_GlobalTransform.m_vScale);
 
           bool bRasterizeSphere = false;
@@ -402,6 +403,7 @@ void ezClusteredDataExtractor::PostSortAndBatch(const ezView& view, const ezDyna
               bRasterizeSphere = true;
             }
           }
+
 
           if (bRasterizeSphere)
           {
@@ -421,6 +423,7 @@ void ezClusteredDataExtractor::PostSortAndBatch(const ezView& view, const ezDyna
 
             RasterizeBox(transform, uiProbeIndex, invViewMatrix, viewProjectionMatrix, m_TempReflectionProbeClusters.GetData(), m_ClusterBoundingSpheres.GetData());
           }
+#endif
         }
         else
         {

@@ -85,7 +85,7 @@ void ezLensFlareRenderer::FillLensFlareData(const ezRenderDataBatch& batch) cons
     const ezLensFlareRenderData* pRenderData = it;
 
     auto& LensFlareData = m_LensFlareData.ExpandAndGetRef();
-    LensFlareData.WorldSpacePosition = pRenderData->m_GlobalTransform.m_vPosition;
+    LensFlareData.WorldSpacePosition = pRenderData->m_vGlobalPosition;
     LensFlareData.Size = pRenderData->m_fSize;
     LensFlareData.MaxScreenSize = pRenderData->m_fMaxScreenSize;
     LensFlareData.OcclusionRadius = pRenderData->m_fOcclusionSampleRadius;

@@ -93,7 +93,7 @@ void ezSpriteRenderer::FillSpriteData(const ezRenderDataBatch& batch) const
 
     auto& spriteData = m_SpriteData.ExpandAndGetRef();
 
-    spriteData.WorldSpacePosition = pRenderData->m_GlobalTransform.m_vPosition;
+    spriteData.WorldSpacePosition = pRenderData->m_vGlobalPosition;
     spriteData.Size = pRenderData->m_fSize;
     spriteData.MaxScreenSize = pRenderData->m_fMaxScreenSize;
     spriteData.AspectRatio = pRenderData->m_fAspectRatio;

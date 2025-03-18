@@ -86,7 +86,7 @@ public:
 
   ezBitflags<Flags> m_Flags;
 
-  ezUInt32 m_uiNumInstances = 0;
+  ezUInt32 m_uiNumInstances = 1;
   DataOffsets m_DataOffsets;
 
   ezGALDynamicBufferHandle m_hInstanceDataBuffer;

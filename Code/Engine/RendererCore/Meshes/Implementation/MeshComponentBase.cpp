@@ -87,7 +87,12 @@ EZ_END_ABSTRACT_COMPONENT_TYPE;
 // clang-format on
 
 ezMeshComponentBase::ezMeshComponentBase() = default;
-ezMeshComponentBase::~ezMeshComponentBase() = default;
+
+ezMeshComponentBase::~ezMeshComponentBase()
+{
+  const ezRenderWorldModule* pRenderWorldModule = GetWorld()->GetModule<ezRenderWorldModule>();
+  pRenderWorldModule->DeallocateInstanceData(this, m_uiInstanceDataOffset);
+}
 
 void ezMeshComponentBase::SerializeComponent(ezWorldWriter& inout_stream) const
 {
@@ -164,7 +169,11 @@ void ezMeshComponentBase::OnMsgExtractRenderData(ezMsgExtractRenderData& msg) co
   if (!m_hMesh.IsValid())
     return;
 
+  const ezRenderWorldModule* pRenderWorldModule = GetWorld()->GetModule<ezRenderWorldModule>();
 
+  ezGALDynamicBufferHandle hInstanceDataBuffer;
+  auto instanceData = pRenderWorldModule->EnsureInstanceDataIsAllocatedAndMapped(this, hInstanceDataBuffer, m_uiInstanceDataOffset);
+  ezRenderWorldModule::FillPerInstanceData(instanceData[0], GetOwner(), GetUniqueIdForRendering(), m_Color, m_vCustomData);
 
   ezResourceLock<ezMeshResource> pMesh(m_hMesh, ezResourceAcquireMode::AllowLoadingFallback);
   ezArrayPtr<const ezMeshResourceDescriptor::SubMesh> parts = pMesh->GetSubMeshes();
@@ -182,15 +191,13 @@ void ezMeshComponentBase::OnMsgExtractRenderData(ezMsgExtractRenderData& msg) co
 
     ezMeshRenderData* pRenderData = CreateRenderData();
     {
-      pRenderData->m_GlobalTransform = GetOwner()->GetGlobalTransform() * pRenderData->m_GlobalTransform;
-      pRenderData->m_GlobalBounds = GetOwner()->GetGlobalBounds();
+      pRenderData->m_DataOffsets.m_uiInstance = m_uiInstanceDataOffset;
+      pRenderData->m_hInstanceDataBuffer = hInstanceDataBuffer;      
       pRenderData->m_fSortingDepthOffset = m_fSortingDepthOffset;
-      pRenderData->m_hMesh = m_hMesh;
+
       pRenderData->m_hMaterial = hMaterial;
-      pRenderData->m_Color = m_Color;
-      pRenderData->m_vCustomData = m_vCustomData;
+      pRenderData->m_hMesh = m_hMesh;
       pRenderData->m_uiSubMeshIndex = uiPartIndex;
-      pRenderData->m_uiUniqueID = GetUniqueIdForRendering(uiMaterialIndex);
 
 #if EZ_ENABLED(EZ_COMPILE_FOR_DEVELOPMENT)
       pRenderData->m_Bounds = GetOwner()->GetGlobalBounds().GetBox();
