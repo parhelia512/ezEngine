@@ -136,6 +136,7 @@ struct ezGALVertexAttributeSemantic
     Position,
     Normal,
     Tangent,
+    BiTangent,
     Color0,
     Color1,
     Color2,
@@ -155,11 +156,15 @@ struct ezGALVertexAttributeSemantic
     TexCoord8,
     TexCoord9,
 
-    BiTangent,
     BoneIndices0,
     BoneIndices1,
     BoneWeights0,
     BoneWeights1,
+
+    InstanceDataOffset,
+    CustomInstanceDataOffset,
+    MaterialDataOffset,
+    AuxDataOffset,
 
     ENUM_COUNT,
     Default = Position

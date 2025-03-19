@@ -14,11 +14,53 @@ ezGALVertexDeclarationDX11::ezGALVertexDeclarationDX11(const ezGALVertexDeclarat
 
 ezGALVertexDeclarationDX11::~ezGALVertexDeclarationDX11() = default;
 
-static const char* GALSemanticToDX11[] = {"POSITION", "NORMAL", "TANGENT", "COLOR", "COLOR", "COLOR", "COLOR", "COLOR", "COLOR", "COLOR", "COLOR",
-  "TEXCOORD", "TEXCOORD", "TEXCOORD", "TEXCOORD", "TEXCOORD", "TEXCOORD", "TEXCOORD", "TEXCOORD", "TEXCOORD", "TEXCOORD", "BITANGENT", "BONEINDICES",
-  "BONEINDICES", "BONEWEIGHTS", "BONEWEIGHTS"};
+static const char* GALSemanticToDX11[] = {
+  "POSITION",
+  "NORMAL",
+  "TANGENT",
+  "BITANGENT",
+  "COLOR",
+  "COLOR",
+  "COLOR",
+  "COLOR",
+  "COLOR",
+  "COLOR",
+  "COLOR",
+  "COLOR",
+  "TEXCOORD",
+  "TEXCOORD",
+  "TEXCOORD",
+  "TEXCOORD",
+  "TEXCOORD",
+  "TEXCOORD",
+  "TEXCOORD",
+  "TEXCOORD",
+  "TEXCOORD",
+  "TEXCOORD",
+  "BONEINDICES",
+  "BONEINDICES",
+  "BONEWEIGHTS",
+  "BONEWEIGHTS",
+  "INSTANCE_DATA_OFFSET",
+  "CUSTOM_INSTANCE_DATA_OFFSET",
+  "MATERIAL_DATA_OFFSET",
+  "AUX_DATA_OFFSET",
+};
 
-static UINT GALSemanticToIndexDX11[] = {0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 0, 1, 0, 1};
+static UINT GALSemanticToIndexDX11[] = {
+  0,                            // Position
+  0,                            // Normal
+  0,                            // Tangent
+  0,                            // BiTangent
+  0, 1, 2, 3, 4, 5, 6, 7,       // Color
+  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, // TexCoord
+  0, 1,                         // BoneIndices
+  0, 1,                         // BoneWeights
+  0,                            // InstanceDataOffset
+  0,                            // CustomInstanceDataOffset
+  0,                            // MaterialDataOffset
+  0,                            // AuxDataOffset
+};
 
 static_assert(EZ_ARRAY_SIZE(GALSemanticToDX11) == ezGALVertexAttributeSemantic::ENUM_COUNT,
   "GALSemanticToDX11 array size does not match vertex attribute semantic count");
@@ -67,8 +109,7 @@ ezResult ezGALVertexDeclarationDX11::InitPlatform(ezGALDevice* pDevice)
 
   const ezSharedPtr<const ezGALShaderByteCode>& pByteCode = pShader->GetDescription().m_ByteCodes[ezGALShaderStage::VertexShader];
 
-  if (FAILED(pDXDevice->GetDXDevice()->CreateInputLayout(
-        &DXInputElementDescs[0], DXInputElementDescs.GetCount(), pByteCode->GetByteCode(), pByteCode->GetSize(), &m_pDXInputLayout)))
+  if (FAILED(pDXDevice->GetDXDevice()->CreateInputLayout(&DXInputElementDescs[0], DXInputElementDescs.GetCount(), pByteCode->GetByteCode(), pByteCode->GetSize(), &m_pDXInputLayout)))
   {
     return EZ_FAILURE;
   }

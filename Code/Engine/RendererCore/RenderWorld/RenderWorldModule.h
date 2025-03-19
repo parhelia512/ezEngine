@@ -6,6 +6,7 @@ struct ezPerInstanceData;
 
 class EZ_RENDERERCORE_DLL ezRenderWorldModule : public ezWorldModule
 {
+  EZ_DECLARE_WORLD_MODULE();
   EZ_ADD_DYNAMIC_REFLECTION(ezRenderWorldModule, ezWorldModule);
 
 public:

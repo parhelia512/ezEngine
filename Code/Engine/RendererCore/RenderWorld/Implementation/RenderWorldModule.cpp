@@ -5,6 +5,7 @@
 #include <RendererFoundation/Resources/DynamicBuffer.h>
 
 // clang-format off
+EZ_IMPLEMENT_WORLD_MODULE(ezRenderWorldModule);
 EZ_BEGIN_DYNAMIC_REFLECTED_TYPE(ezRenderWorldModule, 1, ezRTTINoAllocator)
 EZ_END_DYNAMIC_REFLECTED_TYPE;
 // clang-format on
@@ -13,6 +14,16 @@ ezRenderWorldModule::ezRenderWorldModule(ezWorld* pWorld)
   : ezWorldModule(pWorld)
 {
   ezRenderWorld::GetExtractionEvent().AddEventHandler(ezMakeDelegate(&ezRenderWorldModule::OnExtractionEvent, this));
+
+  ezGALBufferCreationDescription desc;
+  desc.m_uiStructSize = sizeof(ezPerInstanceData);
+  desc.m_uiTotalSize = 1024 * desc.m_uiStructSize; // TODO: make initial size configurable
+  desc.m_BufferFlags = ezGALBufferUsageFlags::StructuredBuffer | ezGALBufferUsageFlags::ShaderResource;
+  desc.m_ResourceAccess.m_bImmutable = false;
+
+  ezGALDevice* pDevice = ezGALDevice::GetDefaultDevice();
+  m_hInstanceDataBuffer[0] = pDevice->CreateDynamicBuffer(desc, "Static Instance Data");
+  m_hInstanceDataBuffer[1] = pDevice->CreateDynamicBuffer(desc, "Dynamic Instance Data");
 }
 
 ezRenderWorldModule::~ezRenderWorldModule()

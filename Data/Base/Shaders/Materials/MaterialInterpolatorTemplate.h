@@ -41,12 +41,12 @@ struct STAGE_TEMPLATE
   float4 DebugInterpolator : DEBUG_INTERPOLATOR;
 #endif
 
-  uint nointerpolation InstanceDataOffset : INSTANCE_DATA_OFFSET;
+  nointerpolation uint InstanceDataOffset : INSTANCE_DATA_OFFSET;
 #if defined(USE_CUSTOM_INSTANCE_DATA)
-  uint nointerpolation CustomInstanceDataOffset : CUSTOM_INSTANCE_DATA_OFFSET;
+  nointerpolation uint CustomInstanceDataOffset : CUSTOM_INSTANCE_DATA_OFFSET;
 #endif
 
-  uint nointerpolation MaterialDataOffset : MATERIAL_DATA_OFFSET;
+  nointerpolation uint MaterialDataOffset : MATERIAL_DATA_OFFSET;
 
 #if defined(RENDER_TARGET_ARRAY_INDEX)
   uint RenderTargetArrayIndex : SV_RenderTargetArrayIndex;

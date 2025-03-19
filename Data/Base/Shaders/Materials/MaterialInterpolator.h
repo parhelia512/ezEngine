@@ -100,5 +100,3 @@ struct VS_IN
 #  include <Shaders/Materials/MaterialInterpolatorTemplate.h>
 #  undef STAGE_TEMPLATE
 #endif
-
-// typedef VS_OUT PS_IN;
