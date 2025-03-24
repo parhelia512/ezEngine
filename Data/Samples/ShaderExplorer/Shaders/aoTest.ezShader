@@ -9,11 +9,7 @@ CullMode = CullMode_None
 
 [MATERIALCONSTANTS]
 
-#include <Shaders/Common/GlobalConstants.h>
-CONSTANT_BUFFER(ezMaterialConstants, 0)
-{
   MAT4(ViewMatrix);
-};
 
 [VERTEXSHADER]
 

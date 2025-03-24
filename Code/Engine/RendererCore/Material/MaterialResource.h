@@ -145,7 +145,7 @@ public:
 
   ezEvent<const ezMaterialResource*, ezMutex> m_ModifiedEvent;
 
-  void OnBaseMaterialModified(const ezMaterialResource* pModifiedMaterial);
+  //void OnBaseMaterialModified(const ezMaterialResource* pModifiedMaterial);
   void AddPermutationVar(ezStringView sName, ezStringView sValue);
   void SetModified(DirtyFlags::Enum flag);
   /// \brief This is a temporary function until runtime material inheritance is removed at which point the material will be fully loaded after UpdateContent is called. This will also allow us to register the material at the material manager and give it a materialId immediately.

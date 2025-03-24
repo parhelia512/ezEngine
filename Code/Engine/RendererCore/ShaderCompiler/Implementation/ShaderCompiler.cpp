@@ -273,6 +273,24 @@ ezResult ezShaderCompiler::CompileShaderPermutationForPlatforms(ezStringView sFi
   ezUInt32 uiFirstMaterialConstantsLine = 0;
   ezStringView sMaterialConstantsSource = Sections.GetSectionContent(ezShaderHelper::ezShaderSections::MATERIALCONSTANTS, uiFirstMaterialConstantsLine);
 
+
+  if (!sMaterialConstantsSource.IsEmpty())
+  {
+    m_MaterialBufferLayout = EZ_DEFAULT_NEW(ezShaderConstantBufferLayout);
+    ezStatus res = ezShaderParser::ParseMaterialConstantsSection(sMaterialConstantsSource, m_MaterialBufferLayout);
+    if (res.LogFailure())
+      return EZ_FAILURE;
+  }
+
+  const char* szMaterialConstantsStruct =
+    "#include <Shaders/Common/GlobalConstants.h>\n"
+    "#define HAS_MATERIAL_CONSTANTS\n"
+    "struct ezMaterialConstants\n"
+    "{\n"
+    "#line {0}\n"
+    "{1}\n"
+    "};\n";
+
   for (ezUInt32 stage = ezGALShaderStage::VertexShader; stage < ezGALShaderStage::ENUM_COUNT; ++stage)
   {
     ezStringView sStageSource = Sections.GetSectionContent(ezShaderHelper::ezShaderSections::VERTEXSHADER + stage, uiFirstLine);
@@ -285,7 +303,7 @@ ezResult ezShaderCompiler::CompileShaderPermutationForPlatforms(ezStringView sFi
       // prepend material constants section if there is any
       if (!sMaterialConstantsSource.IsEmpty())
       {
-        sTemp.AppendFormat("#line {0}\n{1}", uiFirstMaterialConstantsLine, sMaterialConstantsSource);
+        sTemp.AppendFormat(szMaterialConstantsStruct, uiFirstMaterialConstantsLine, sMaterialConstantsSource);
       }
 
       // prepend common shader section if there is any
@@ -513,6 +531,25 @@ ezResult ezShaderCompiler::RunShaderCompiler(ezStringView sFile, ezStringView sP
     {
       WriteFailedShaderSource(spd, pLog);
       return EZ_FAILURE;
+    }
+
+    ezTempHashedString sMaterialConstants("materialData");
+    for (ezUInt32 stage = ezGALShaderStage::VertexShader; stage < ezGALShaderStage::ENUM_COUNT && m_MaterialBufferLayout; ++stage)
+    {
+      if (!spd.m_ByteCode[stage])
+        continue;
+
+      for (const ezShaderResourceBinding& binding : spd.m_ByteCode[stage]->m_ShaderResourceBindings)
+      {
+        if (binding.m_sName != sMaterialConstants)
+          continue;
+
+        if (binding.m_pLayout && *binding.m_pLayout != *m_MaterialBufferLayout)
+        {
+          ezLog::Error("Compiled stage {}'s layout of ezMaterialConstants differs from the parsed result via ezShaderParser::ParseMaterialConstantsSection. The function probably has a bug or ifdefs where used in the [MATERIALCONSTANTS] section which is not allowed. File: {}", stage, sFile);
+          return EZ_FAILURE;
+        }
+      }
     }
 
     for (ezUInt32 stage = ezGALShaderStage::VertexShader; stage < ezGALShaderStage::ENUM_COUNT; ++stage)

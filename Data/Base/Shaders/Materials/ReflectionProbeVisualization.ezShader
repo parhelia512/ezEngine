@@ -27,12 +27,8 @@ int ReflectionProbeIndex @Default(0);
 
 [MATERIALCONSTANTS]
 
-#include <Shaders/Common/GlobalConstants.h>
-CONSTANT_BUFFER(ezMaterialConstants, 1)
-{
   INT1(MipLevel);
   INT1(ReflectionProbeIndex);
-};
 
 [VERTEXSHADER]
 
@@ -69,7 +65,7 @@ float3 GetDiffuseColor()
 
   float3 reflectionDir = CubeMapDirection(ReflDirectionWS);
 
-  return ReflectionSpecularTexture.SampleLevel(LinearSampler, float4(reflectionDir, ReflectionProbeIndex), MipLevel).rgb;
+  return ReflectionSpecularTexture.SampleLevel(LinearSampler, float4(reflectionDir, GetMaterialData(ReflectionProbeIndex)), GetMaterialData(MipLevel)).rgb;
 }
 
 float3 GetSpecularColor()

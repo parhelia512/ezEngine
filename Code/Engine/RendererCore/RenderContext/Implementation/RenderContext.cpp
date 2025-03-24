@@ -1128,7 +1128,7 @@ ezShaderPermutationResource* ezRenderContext::ApplyShaderState()
     ezResourceLock<ezShaderResource> pShader(m_hActiveShader, m_bAllowAsyncShaderLoading ? ezResourceAcquireMode::AllowLoadingFallback : ezResourceAcquireMode::BlockTillLoaded);
     if (pShader.GetAcquireResult() == ezResourceAcquireResult::Final && pShaderPermutation->GetResourceHandle() == m_hActiveShaderPermutation)
     {
-      ezShaderConstantBufferLayout* pLayout2 = pShader->GetConstantBufferLayout().Borrow();
+      ezShaderConstantBufferLayout* pLayout2 = pShader->GetMaterialLayout().Borrow();
 
       ezTempHashedString sConstantBufferName("ezMaterialConstants");
       const ezGALShader* pShader = ezGALDevice::GetDefaultDevice()->GetShader(pShaderPermutation->GetGALShader());
@@ -1185,7 +1185,7 @@ void ezRenderContext::ApplyMaterialState()
   if (m_hNewMaterial != m_hMaterial)
   {
     const ezMaterialManager::MaterialData* data = ezMaterialManager::GetMaterialData(pMaterial);
-    if (data == nullptr || data->m_ConstantBuffer.IsInvalidated())
+    if (data == nullptr)
     {
       BindShaderInternal(ezShaderResourceHandle(), ezShaderBindFlags::Default);
       return;
@@ -1193,9 +1193,9 @@ void ezRenderContext::ApplyMaterialState()
 
     BindShaderInternal(data->m_hShader, ezShaderBindFlags::Default);
 
-    if (!data->m_ConstantBuffer.IsInvalidated())
+    if (!data->m_BufferView.IsInvalidated())
     {
-      BindConstantBuffer("ezMaterialConstants", data->m_ConstantBuffer);
+      BindBuffer("materialData", data->m_BufferView);
     }
 
     for (const ezPermutationVar& perm : data->m_PermutationVars)

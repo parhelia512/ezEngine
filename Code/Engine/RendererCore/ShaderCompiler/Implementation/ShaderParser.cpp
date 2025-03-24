@@ -717,7 +717,7 @@ ezUInt32 AlignSize(ezUInt32 uiValue, ezUInt32 uiAlignment)
   return uiRemainder == 0 ? uiValue : uiValue + uiAlignment - uiRemainder;
 }
 
-void ConstantBuffersAlignment(ezShaderConstantBufferLayout& ref_materialConstantBufferLayout)
+void ConstantBuffersAlignmentDX11(ezShaderConstantBufferLayout& ref_materialConstantBufferLayout)
 {
   ezUInt32 uiCurrentOffset = 0;
   for (ezShaderConstant& constant : ref_materialConstantBufferLayout.m_Constants)
@@ -740,7 +740,30 @@ void ConstantBuffersAlignment(ezShaderConstantBufferLayout& ref_materialConstant
   ref_materialConstantBufferLayout.m_uiTotalSize = uiCurrentOffset;
 }
 
-void StructuredBuffersAlignment(ezShaderConstantBufferLayout& ref_materialConstantBufferLayout)
+void StructuredBuffersAlignmentVulkan(ezShaderConstantBufferLayout& ref_materialConstantBufferLayout)
+{
+  ezUInt32 uiCurrentOffset = 0;
+  for (ezShaderConstant& constant : ref_materialConstantBufferLayout.m_Constants)
+  {
+    const ezUInt32 uiScalarSize = s_ShaderConstantScalarSize[constant.m_Type];
+    const ezUInt32 uiConstantSize = s_ShaderConstantSize[constant.m_Type];
+    uiCurrentOffset = AlignSize(uiCurrentOffset, uiScalarSize);
+    const ezUInt32 uiStartBucket = uiCurrentOffset / 16;
+    const ezUInt32 uiEndBucket = (uiCurrentOffset + uiConstantSize - 1) / 16;
+    // Check if the constant is crossing a 16 byte boundary
+    if (uiStartBucket != uiEndBucket)
+    {
+      uiCurrentOffset = AlignSize(uiCurrentOffset, 16);
+    }
+    constant.m_uiOffset = uiCurrentOffset;
+    uiCurrentOffset += uiConstantSize;
+  }
+
+  //uiCurrentOffset = AlignSize(uiCurrentOffset, 16);
+  ref_materialConstantBufferLayout.m_uiTotalSize = uiCurrentOffset;
+}
+
+void StructuredBuffersAlignmentDX11(ezShaderConstantBufferLayout& ref_materialConstantBufferLayout)
 {
   ezUInt32 uiCurrentOffset = 0;
   for (ezShaderConstant& constant : ref_materialConstantBufferLayout.m_Constants)
@@ -751,11 +774,11 @@ void StructuredBuffersAlignment(ezShaderConstantBufferLayout& ref_materialConsta
     constant.m_uiOffset = uiCurrentOffset;
     uiCurrentOffset += uiConstantSize;
   }
-  uiCurrentOffset = AlignSize(uiCurrentOffset, 16);
+  // uiCurrentOffset = AlignSize(uiCurrentOffset, 16);
   ref_materialConstantBufferLayout.m_uiTotalSize = uiCurrentOffset;
 }
 
-ezStatus ParseShaderConstantBufferLayout(const TokenStream& tokens, ezUInt32& ref_uiCurToken, ezShaderConstantBufferLayout& ref_materialConstantBufferLayout)
+ezStatus ParseMaterialConstants(const TokenStream& tokens, ezUInt32& ref_uiCurToken, ezShaderConstantBufferLayout& ref_materialConstantBufferLayout)
 {
   const bool bIsConstantBuffer = true;
 
@@ -763,14 +786,10 @@ ezStatus ParseShaderConstantBufferLayout(const TokenStream& tokens, ezUInt32& re
   {
   }
 
-  if (Accept(tokens, ref_uiCurToken, "}"_ezsv))
-  {
-    // #TODO Once we switch to structured buffers for materials, this needs to be StructuredBuffersAlignment.
-    ConstantBuffersAlignment(ref_materialConstantBufferLayout);
-    return ezStatus(EZ_SUCCESS);
-  }
+  if (ref_materialConstantBufferLayout.m_Constants.IsEmpty())
+    return ezStatus(ezFmt("Failed to parse shader constants: no constants found"));
 
-  return ezStatus(ezFmt("Failed to parse shader constant, missing } at end of constant buffer."));
+  return ezStatus(EZ_SUCCESS);
 }
 
 ezStatus ezShaderParser::ParseMaterialConstantsSection(ezStringView sMaterialConstantsSection, ezSharedPtr<ezShaderConstantBufferLayout>& out_pMaterialConstantBufferLayout)
@@ -786,24 +805,16 @@ ezStatus ezShaderParser::ParseMaterialConstantsSection(ezStringView sMaterialCon
   ezUInt32 uiCurToken = 0;
   ezHybridArray<ezUInt32, 8> acceptedTokens;
 
-  while (!Accept(tokens, uiCurToken, ezTokenType::EndOfFile))
+  out_pMaterialConstantBufferLayout = EZ_DEFAULT_NEW(ezShaderConstantBufferLayout);
+  const ezStatus res = ParseMaterialConstants(tokens, uiCurToken, *out_pMaterialConstantBufferLayout);
+  if (res.Failed())
   {
-    TokenMatch constantBufferPattern[] = {"CONSTANT_BUFFER"_ezsv, "("_ezsv, "ezMaterialConstants"_ezsv, ","_ezsv, ezTokenType::Integer, ")"_ezsv, "{"_ezsv};
-    TokenMatch constantBufferPattern2[] = {"CONSTANT_BUFFER2"_ezsv, "("_ezsv, "ezMaterialConstants"_ezsv, ","_ezsv, ezTokenType::Integer, ","_ezsv, ezTokenType::Identifier, ")"_ezsv, "{"_ezsv};
-    if (Accept(tokens, uiCurToken, constantBufferPattern, &acceptedTokens) ||
-        Accept(tokens, uiCurToken, constantBufferPattern2, &acceptedTokens))
-    {
-      out_pMaterialConstantBufferLayout = EZ_DEFAULT_NEW(ezShaderConstantBufferLayout);
-      const ezStatus res = ParseShaderConstantBufferLayout(tokens, uiCurToken, *out_pMaterialConstantBufferLayout);
-      if (res.Failed())
-      {
-        out_pMaterialConstantBufferLayout = nullptr;
-      }
-      return res;
-    }
-    ++uiCurToken;
+    out_pMaterialConstantBufferLayout = nullptr;
+    return res;
   }
-  return ezStatus("Could not find ezMaterialConstants inside [MATERIALCONSTANTS] section!");
+
+  StructuredBuffersAlignmentVulkan(*out_pMaterialConstantBufferLayout);
+  return ezStatus(EZ_SUCCESS);
 }
 
 // static

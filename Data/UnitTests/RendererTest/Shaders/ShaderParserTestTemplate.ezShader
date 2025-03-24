@@ -3,6 +3,8 @@ ALL
 
 [PERMUTATIONS]
 
+CAMERA_MODE
+
 [RENDERSTATE]
 
 [MATERIALCONSTANTS]
@@ -15,7 +17,7 @@ struct VS_OUT
 {
   float4 Position : SV_Position;
 };
-
+//aaa
 VS_OUT main(uint vertexId : SV_VertexID)
 {
    const float4 positions[] = {
@@ -30,6 +32,8 @@ VS_OUT main(uint vertexId : SV_VertexID)
 }
 
 [PIXELSHADER]
+
+#include <Shaders/Materials/MaterialCB.h>
 
 struct VS_OUT
 {

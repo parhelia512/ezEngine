@@ -339,7 +339,7 @@ ezMaterialManager::MaterialShaderConstants::MaterialShaderConstants(ezShaderReso
 
 ezMaterialManager::MaterialShaderConstants::~MaterialShaderConstants()
 {
-  DestroyConstantBuffers();
+  DestroyGpuResources();
 }
 
 ezMaterialResource::ezMaterialId ezMaterialManager::MaterialShaderConstants::AddMaterial(ezMaterialResourceHandle hMaterial)
@@ -361,12 +361,12 @@ void ezMaterialManager::MaterialShaderConstants::MarkDirty(ezMaterialResource::e
 void ezMaterialManager::MaterialShaderConstants::UpdateConstantBuffers()
 {
   bool bLayoutChanged = false;
-
+  bool bBufferResized = false;
   if (m_bShaderDirty)
   {
     // Rebuild mapping
     ezResourceLock<ezShaderResource> pShader(m_hShader, ezResourceAcquireMode::BlockTillLoaded);
-    ezSharedPtr<ezShaderConstantBufferLayout> pNewLayout = pShader->GetConstantBufferLayout();
+    ezSharedPtr<ezShaderConstantBufferLayout> pNewLayout = pShader->GetMaterialLayout();
     bLayoutChanged = m_pLayout == nullptr || *m_pLayout != *pNewLayout;
     if (bLayoutChanged)
     {
@@ -388,18 +388,20 @@ void ezMaterialManager::MaterialShaderConstants::UpdateConstantBuffers()
       {
         m_ParameterNameToLayoutIndex.Insert(m_pLayout->m_Constants[i].m_sName, i);
       }
-      DestroyConstantBuffers();
+      DestroyGpuResources();
     }
     m_bShaderDirty = false;
   }
 
-  {
-    // Resize data array
-    m_ConstantBufferData.SetCount(m_pLayout->m_uiTotalSize * m_Materials.GetCapacity());
-    m_ConstantBuffers.SetCount(m_Materials.GetCapacity());
-  }
+  // Resize data array
+  ezGALDevice* pDevice = ezGALDevice::GetDefaultDevice();
+  const ezUInt32 uiCapacity = m_Materials.GetCapacity();
+  const ezUInt64 uiNewSize = m_pLayout->m_uiTotalSize * uiCapacity;
+  m_ConstantBufferData.SetCount(m_pLayout->m_uiTotalSize * m_Materials.GetCapacity());
+  m_MaterialBuffers.SetCount(m_Materials.GetCapacity());
+  m_MaterialBufferViews.SetCount(m_Materials.GetCapacity());
 
-  if (!bLayoutChanged && m_DirtyMaterials.IsEmpty())
+  if (!bLayoutChanged && m_DirtyMaterials.IsEmpty() && !bBufferResized)
     return;
 
   ezGALCommandEncoder* pEncoder = ezGALDevice::GetDefaultDevice()->BeginCommands("UpdateMaterials");
@@ -425,20 +427,23 @@ void ezMaterialManager::MaterialShaderConstants::UpdateConstantBuffers()
     }
     m_DirtyMaterials.Clear();
   }
+
   ezGALDevice::GetDefaultDevice()->EndCommands(pEncoder);
 }
 
-void ezMaterialManager::MaterialShaderConstants::DestroyConstantBuffers()
+void ezMaterialManager::MaterialShaderConstants::DestroyGpuResources()
 {
   ezGALDevice* pDevice = ezGALDevice::GetDefaultDevice();
-  for (ezUInt32 i = 0; i < m_ConstantBuffers.GetCount(); ++i)
+  for (ezGALBufferResourceViewHandle hBufferView : m_MaterialBufferViews)
   {
-    ezGALBufferHandle& hBuffer = m_ConstantBuffers[i];
+    if (!hBufferView.IsInvalidated())
+      pDevice->DestroyResourceView(hBufferView);
+  }
+  m_MaterialBufferViews.Clear();
+  for (ezGALBufferHandle hBuffer : m_MaterialBuffers)
+  {
     if (!hBuffer.IsInvalidated())
-    {
-      pDevice->DestroyBuffer(m_ConstantBuffers[i]);
-      hBuffer.Invalidate();
-    }
+      pDevice->DestroyBuffer(hBuffer);
   }
 }
 
@@ -452,7 +457,7 @@ void ezMaterialManager::MaterialShaderConstants::OnResourceEvent(const ezResourc
 
 void ezMaterialManager::MaterialShaderConstants::OnShaderChanged(ezShaderResource* pShader)
 {
-  ezSharedPtr<ezShaderConstantBufferLayout> pNewLayout = pShader->GetConstantBufferLayout();
+  ezSharedPtr<ezShaderConstantBufferLayout> pNewLayout = pShader->GetMaterialLayout();
   const bool bChanged = m_pLayout == nullptr || *m_pLayout != *pNewLayout;
   if (bChanged)
   {
@@ -485,21 +490,30 @@ void ezMaterialManager::MaterialShaderConstants::UpdateMaterial(ezMaterialResour
       }
     }
   }
-  // Create and update constant buffer
-  if (m_ConstantBuffers[id.m_InstanceIndex].IsInvalidated())
-  {
-    ezGALBufferCreationDescription desc;
-    desc.m_uiStructSize = 0;
-    desc.m_uiTotalSize = m_pLayout->m_uiTotalSize;
-    desc.m_BufferFlags = ezGALBufferUsageFlags::ConstantBuffer;
-    desc.m_ResourceAccess.m_bImmutable = false;
-    m_ConstantBuffers[id.m_InstanceIndex] = ezGALDevice::GetDefaultDevice()->CreateBuffer(desc);
-  }
-  // We lazily create m_ConstantBuffers so we need to always update the MaterialData as this could be a constant buffer from a previous material that resided in this slot.
-  md.m_ConstantBuffer = m_ConstantBuffers[id.m_InstanceIndex];
 
-  pEncoder->UpdateBuffer(md.m_ConstantBuffer, 0, data, ezGALUpdateMode::AheadOfTime);
+  // Create and update constant buffer
+  if (m_MaterialBuffers[id.m_InstanceIndex].IsInvalidated())
+  {
+    ezGALBufferCreationDescription bufferDesc;
+    bufferDesc.m_uiStructSize = m_pLayout->m_uiTotalSize;
+    bufferDesc.m_uiTotalSize = m_pLayout->m_uiTotalSize;
+    bufferDesc.m_BufferFlags = ezGALBufferUsageFlags::StructuredBuffer | ezGALBufferUsageFlags::ShaderResource;
+    bufferDesc.m_ResourceAccess.m_bImmutable = false;
+    m_MaterialBuffers[id.m_InstanceIndex] = ezGALDevice::GetDefaultDevice()->CreateBuffer(bufferDesc);
+
+    ezGALBufferResourceViewCreationDescription viewDesc;
+    viewDesc.m_hBuffer = m_MaterialBuffers[id.m_InstanceIndex];
+    viewDesc.m_uiFirstElement = 0;
+    viewDesc.m_uiNumElements = 1;
+    m_MaterialBufferViews[id.m_InstanceIndex] = ezGALDevice::GetDefaultDevice()->CreateResourceView(viewDesc);
+  }
+
+  // We lazily create m_ConstantBuffers so we need to always update the MaterialData as this could be a constant buffer from a previous material that resided in this slot.
+  md.m_BufferView = m_MaterialBufferViews[id.m_InstanceIndex];
+
+  pEncoder->UpdateBuffer(m_MaterialBuffers[id.m_InstanceIndex], 0, data, ezGALUpdateMode::AheadOfTime);
 }
+
 bool ezMaterialManager::MaterialShaderConstants::IsEmpty() const
 {
   return m_Materials.IsEmpty();

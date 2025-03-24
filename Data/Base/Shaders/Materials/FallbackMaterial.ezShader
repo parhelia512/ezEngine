@@ -20,23 +20,7 @@ MSAA = FALSE
 
 [MATERIALCONSTANTS]
 
-#include <Shaders/Common/GlobalConstants.h>
-CONSTANT_BUFFER(ezMaterialConstants, 1)
-{
   COLOR4F(BaseColor);
-  COLOR4F(EmissiveColor);
-  FLOAT1(MetallicValue);
-  FLOAT1(ReflectanceValue);
-  FLOAT1(RoughnessValue);
-  FLOAT1(MaskThreshold);
-  BOOL1(UseBaseTexture);
-  BOOL1(UseNormalTexture);
-  BOOL1(UseRoughnessTexture);
-  BOOL1(UseMetallicTexture);
-  BOOL1(UseEmissiveTexture);
-  BOOL1(UseOcclusionTexture);
-  BOOL1(UseOrmTexture);
-};
 
 [VERTEXSHADER]
 
@@ -123,9 +107,9 @@ float3 GetNormal()
 float3 GetDiffuseColor()
 {
   #if TOPOLOGY == TOPOLOGY_TRIANGLES
-    return SampleTexture3Way(BaseTexture, BaseTexture_AutoSampler, G.Input.Normal, G.Input.WorldPosition + 0.5, 1.0).rgb * BaseColor.rgb;
+    return SampleTexture3Way(BaseTexture, BaseTexture_AutoSampler, G.Input.Normal, G.Input.WorldPosition + 0.5, 1.0).rgb * GetMaterialData(BaseColor).rgb;
   #else
-    return float3(0.5, 0.5, 0.5) * BaseColor.rgb;
+    return float3(0.5, 0.5, 0.5) * GetMaterialData(BaseColor).rgb;
   #endif
 }
 

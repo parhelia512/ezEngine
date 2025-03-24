@@ -466,6 +466,9 @@ private:
   static void PreloadResource(ezResource* pResource);
   static void InternalPreloadResource(ezResource* pResource, bool bHighestPriority);
 
+  template <typename ResourceType, typename DescriptorType>
+  static ezTypedResourceHandle<ResourceType> CreateResourceInternal(ezStringView sResourceID, DescriptorType&& descriptor, ezStringView sResourceDescription, bool bAllowGetFallback);
+
   template <typename ResourceType>
   static ResourceType* GetResource(ezStringView sResourceID, bool bIsReloadable);
   static ezResource* GetResource(const ezRTTI* pRtti, ezStringView sResourceID, bool bIsReloadable);

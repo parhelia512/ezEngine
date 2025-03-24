@@ -189,6 +189,7 @@ void ezShaderCompilerDXC::ConfigureDxcArgs(ezDynamicArray<ezStringWChar>& inout_
   inout_Args.PushBack(L"-spirv");
   inout_Args.PushBack(L"-fvk-use-dx-position-w");
   inout_Args.PushBack(L"-fspv-target-env=vulkan1.1");
+  //inout_Args.PushBack(L"-fvk-use-dx-layout");
 }
 
 ezResult ezShaderCompilerDXC::CompileSPIRVShader(ezStringView sFile, ezStringView sSource, bool bDebug, ezStringView sProfile, ezStringView sEntryPoint, ezDynamicArray<ezUInt8>& out_ByteCode)
@@ -589,6 +590,7 @@ ezResult ezShaderCompilerDXC::FillSRVResourceBinding(ezShaderResourceBinding& bi
   {
     if (info.type_description->op == SpvOp::SpvOpTypeStruct)
     {
+      binding.m_pLayout = ReflectStructuredBufferLayout(info.name, info.block);
       binding.m_ResourceType = ezGALShaderResourceType::StructuredBuffer;
       return EZ_SUCCESS;
     }
@@ -650,6 +652,7 @@ ezResult ezShaderCompilerDXC::FillUAVResourceBinding(ezShaderResourceBinding& bi
   {
     if (info.image.dim == SpvDim::SpvDimBuffer)
     {
+      binding.m_pLayout = ReflectStructuredBufferLayout(info.name, info.block);
       binding.m_ResourceType = ezGALShaderResourceType::StructuredBufferRW;
       return EZ_SUCCESS;
     }
@@ -855,11 +858,23 @@ ezResult ezShaderCompilerDXC::ReflectShaderStage(ezShaderProgramData& inout_Data
   return EZ_SUCCESS;
 }
 
+ezShaderConstantBufferLayout* ezShaderCompilerDXC::ReflectStructuredBufferLayout(ezStringView sName, const SpvReflectBlockVariable& block)
+{
+  EZ_LOG_BLOCK("Structured Buffer Layout", sName);
+  SpvReflectBlockVariable& innerBlock = block.members[0];
+  ezLog::Debug("Structured Buffer has {} variables, Size is {}", innerBlock.member_count, innerBlock.padded_size);
+  return ReflectBufferLayout(innerBlock);
+}
+
 ezShaderConstantBufferLayout* ezShaderCompilerDXC::ReflectConstantBufferLayout(ezStringView sName, const SpvReflectBlockVariable& block)
 {
   EZ_LOG_BLOCK("Constant Buffer Layout", sName);
   ezLog::Debug("Constant Buffer has {} variables, Size is {}", block.member_count, block.padded_size);
+  return ReflectBufferLayout(block);
+}
 
+ezShaderConstantBufferLayout* ezShaderCompilerDXC::ReflectBufferLayout(const SpvReflectBlockVariable& block)
+{
   ezShaderConstantBufferLayout* pLayout = EZ_DEFAULT_NEW(ezShaderConstantBufferLayout);
 
   pLayout->m_uiTotalSize = block.padded_size;

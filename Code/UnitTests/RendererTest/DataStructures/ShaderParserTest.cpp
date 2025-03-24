@@ -38,13 +38,9 @@ EZ_CREATE_SIMPLE_RENDERER_TEST(DataStructures, ShaderParser)
   EZ_TEST_BLOCK(ezTestBlock::Enabled, "First Test")
   {
     ezStringView shaderSection =
-      "#include <Shaders/Common/ConstantBufferMacros.h>\n"
-      "CONSTANT_BUFFER(ezMaterialConstants, 1)\n"
-      "{\n"
       "  COLOR4F(BaseColor);\n"
       "  COLOR4F(EmissiveColor);\n"
       "  FLOAT1(MetallicValue);\n"
-      "  FLOAT1(ReflectanceValue);\n"
       "  FLOAT1(RoughnessValue);\n"
       "  FLOAT1(MaskThreshold);\n"
       "  BOOL1(UseBaseTexture);\n"
@@ -53,8 +49,7 @@ EZ_CREATE_SIMPLE_RENDERER_TEST(DataStructures, ShaderParser)
       "  BOOL1(UseMetallicTexture);\n"
       "  BOOL1(UseEmissiveTexture);\n"
       "  BOOL1(UseOcclusionTexture);\n"
-      "  BOOL1(UseOrmTexture);\n"
-      "};\n";
+      "  BOOL1(UseOrmTexture);\n";
 
     // Read template
     ezStringBuilder sEzFileContent;
@@ -69,7 +64,7 @@ EZ_CREATE_SIMPLE_RENDERER_TEST(DataStructures, ShaderParser)
 
     // Insert shaderSection
     sEzFileContent.ReplaceFirst("{{MATERIAL_SECTION}}", shaderSection);
-    sEzFileContent.ReplaceFirst("{{MATERIAL_USAGE}}", "BaseColor.r");
+    sEzFileContent.ReplaceFirst("{{MATERIAL_USAGE}}", "GetMaterialData(BaseColor).r");
 
     // Write temp shader
     ezStringBuilder sTempFile = ":imgout/Temp.ezShader";
@@ -93,11 +88,16 @@ EZ_CREATE_SIMPLE_RENDERER_TEST(DataStructures, ShaderParser)
     ezShaderPermutationResource* pShaderPermutation = ezResourceManager::BeginAcquireResource(m_hActiveShaderPermutation, ezResourceAcquireMode::BlockTillLoaded);
     const ezGALShader* pGalShader = ezGALDevice::GetDefaultDevice()->GetShader(pShaderPermutation->GetGALShader());
 
-    ezTempHashedString sConstantBufferName("ezMaterialConstants");
-    const ezShaderResourceBinding* pBinding = pGalShader->GetShaderResourceBinding(sConstantBufferName);
-
-    // Compared parsed vs compiled layout
-    CompareLayouts(*pShaderResource->GetConstantBufferLayout(), *pBinding->m_pLayout);
+    if (EZ_TEST_BOOL(pGalShader))
+    {
+      ezTempHashedString sConstantBufferName("materialData");
+      const ezShaderResourceBinding* pBinding = pGalShader->GetShaderResourceBinding(sConstantBufferName);
+      // Compared parsed vs compiled layout
+      if (EZ_TEST_BOOL(pBinding && pBinding->m_pLayout))
+      {
+        CompareLayouts(*pShaderResource->GetMaterialLayout(), *pBinding->m_pLayout);
+      }
+    }
     ezResourceManager::EndAcquireResource(pShaderPermutation);
   }
 }

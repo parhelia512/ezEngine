@@ -25,7 +25,7 @@ public:
   bool IsShaderValid() const { return m_bShaderResourceIsValid; }
 
   ezArrayPtr<const ezHashedString> GetUsedPermutationVars() const { return m_PermutationVarsUsed; }
-  const ezSharedPtr<ezShaderConstantBufferLayout>& GetConstantBufferLayout() const { return m_pLayout; }
+  const ezSharedPtr<ezShaderConstantBufferLayout>& GetMaterialLayout() const { return m_pLayout; }
 
 private:
   virtual ezResourceLoadDesc UnloadData(Unload WhatToUnload) override;

@@ -147,14 +147,9 @@ float MaskThreshold @Default($prop0);
   string %CodePixelConstants { "" }
   string %CodeMaterialConstants { "
 
-#include <Shaders/Common/GlobalConstants.h>
-CONSTANT_BUFFER(ezMaterialConstants, 1)
-{
   FLOAT1(MaskThreshold);
-  
   // Insert custom Visual Shader parameters here
   VSE_CONSTANTS
-}
 " }
 
   string %CodePixelBody { "
@@ -191,7 +186,7 @@ float GetRoughness()
 float GetOpacity()
 {
   #if BLEND_MODE == BLEND_MODE_MASKED
-    return saturate(ToFloat1($in5)) - MaskThreshold;
+    return saturate(ToFloat1($in5)) - GetMaterialData(MaskThreshold);
   #else
     return saturate(ToFloat1($in5));
   #endif

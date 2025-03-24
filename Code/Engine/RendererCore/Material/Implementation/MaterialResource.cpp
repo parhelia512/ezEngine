@@ -291,6 +291,7 @@ const char* ezMaterialResource::GetDefaultMaterialFileName(DefaultMaterialType m
 
 ezResourceLoadDesc ezMaterialResource::UnloadData(Unload WhatToUnload)
 {
+  /*
   if (m_mDesc.m_hBaseMaterial.IsValid())
   {
     ezResourceLock<ezMaterialResource> pBaseMaterial(m_mDesc.m_hBaseMaterial, ezResourceAcquireMode::PointerOnly);
@@ -301,7 +302,7 @@ ezResourceLoadDesc ezMaterialResource::UnloadData(Unload WhatToUnload)
       pBaseMaterial->m_ModifiedEvent.RemoveEventHandler(d);
     }
   }
-
+*/
   m_mDesc.Clear();
   m_mOriginalDesc.Clear();
   m_mFlattenedDesc.Clear();
@@ -336,6 +337,7 @@ ezResourceLoadDesc ezMaterialResource::UpdateContent(ezStreamReader* pOuterStrea
   ezStringBuilder sAbsFilePath;
   (*pOuterStream) >> sAbsFilePath;
 
+  ezUInt8 uiVersion = 0;
   if (sAbsFilePath.HasExtension("ezBinMaterial"))
   {
     ezStringBuilder sTemp, sTemp2;
@@ -343,9 +345,8 @@ ezResourceLoadDesc ezMaterialResource::UpdateContent(ezStreamReader* pOuterStrea
     ezAssetFileHeader AssetHash;
     AssetHash.Read(*pOuterStream).IgnoreResult();
 
-    ezUInt8 uiVersion = 0;
     (*pOuterStream) >> uiVersion;
-    EZ_ASSERT_DEV(uiVersion >= 4 && uiVersion <= 7, "Unknown ezBinMaterial version {0}", uiVersion);
+    EZ_ASSERT_DEV(uiVersion >= 4 && uiVersion <= 8, "Unknown ezBinMaterial version {0}", uiVersion);
 
     ezUInt8 uiCompressionMode = 0;
     if (uiVersion >= 6)
@@ -629,6 +630,7 @@ ezResourceLoadDesc ezMaterialResource::UpdateContent(ezStreamReader* pOuterStrea
     ezLog::Error("Unknown material file type: '{}'", sAbsFilePath);
   }
 
+  /*
   if (m_mDesc.m_hBaseMaterial.IsValid())
   {
     // Block till the base material has been fully loaded to ensure that all parameters have their final value once this material is loaded.
@@ -639,11 +641,15 @@ ezResourceLoadDesc ezMaterialResource::UpdateContent(ezStreamReader* pOuterStrea
       pBaseMaterial->m_ModifiedEvent.AddEventHandler(ezMakeDelegate(&ezMaterialResource::OnBaseMaterialModified, this));
     }
   }
+*/
 
   m_mOriginalDesc = m_mDesc;
-
+  if (uiVersion <= 8)
+  {
+    FlattenHierarchy();
+  }
   // We add the material right away instead of during extraction / begin rendering to make sure the materialId can be used right away.
-  //FlattenHierarchy();
+  //
   ezMaterialManager::MaterialAddedOrReset(this);
   //SetModified(DirtyFlags::ResourceCreation);
   return res;
@@ -669,12 +675,14 @@ EZ_RESOURCE_IMPLEMENT_CREATEABLE(ezMaterialResource, ezMaterialResourceDescripto
   res.m_uiQualityLevelsDiscardable = 0;
   res.m_uiQualityLevelsLoadable = 0;
 
+  /*
   if (m_mDesc.m_hBaseMaterial.IsValid())
   {
     // Can't block here for the base material since this would result in a deadlock
     ezResourceLock<ezMaterialResource> pBaseMaterial(m_mDesc.m_hBaseMaterial, ezResourceAcquireMode::PointerOnly);
     pBaseMaterial->m_ModifiedEvent.AddEventHandler(ezMakeDelegate(&ezMaterialResource::OnBaseMaterialModified, this));
   }
+   */
 
   // We add the material right away instead of during extraction / begin rendering to make sure the materialId can be used right away.
   SetModified(DirtyFlags::ResourceCreation);
@@ -683,6 +691,7 @@ EZ_RESOURCE_IMPLEMENT_CREATEABLE(ezMaterialResource, ezMaterialResourceDescripto
   return res;
 }
 
+/*
 void ezMaterialResource::OnBaseMaterialModified(const ezMaterialResource* pModifiedMaterial)
 {
   EZ_ASSERT_DEV(m_mDesc.m_hBaseMaterial == pModifiedMaterial, "Implementation error");
@@ -692,6 +701,7 @@ void ezMaterialResource::OnBaseMaterialModified(const ezMaterialResource* pModif
   //FlattenHierarchy();
   ezMaterialManager::MaterialAddedOrReset(this);
 }
+*/
 
 void ezMaterialResource::AddPermutationVar(ezStringView sName, ezStringView sValue)
 {

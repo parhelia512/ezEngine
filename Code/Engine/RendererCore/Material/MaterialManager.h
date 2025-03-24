@@ -22,7 +22,7 @@ public:
     ezDynamicArray<ezPermutationVar> m_PermutationVars;
 
     // Constant buffer + textures = descriptor set
-    ezGALBufferHandle m_ConstantBuffer;
+    ezGALBufferResourceViewHandle m_BufferView;
 
     // bindless: textures inlined as indices into constant buffer which turns into structured buffer
     ezDynamicArray<ezMaterialResourceDescriptor::Parameter> m_Parameters; // Builds constant buffer
@@ -53,7 +53,7 @@ private:
 
     void MarkDirty(ezMaterialResource::ezMaterialId id);
     void UpdateConstantBuffers();
-    void DestroyConstantBuffers();
+    void DestroyGpuResources();
 
   private:
     void OnResourceEvent(const ezResourceEvent& e);
@@ -66,7 +66,8 @@ private:
     ezDynamicArray<ezUInt8> m_ConstantBufferData;
     // Bindless: structured buffer for all materials of this shader
     // OldSchool: Constant buffer for each material
-    ezDynamicArray<ezGALBufferHandle> m_ConstantBuffers;
+    ezDynamicArray<ezGALBufferHandle> m_MaterialBuffers;
+    ezDynamicArray<ezGALBufferResourceViewHandle> m_MaterialBufferViews;
 
     // Shader data
     bool m_bShaderDirty = true;
@@ -80,7 +81,6 @@ private:
     ezMaterialManager* m_pParent = nullptr;
     ezEvent<const ezResourceEvent&, ezMutex>::Unsubscriber m_ShaderResourceEventSubscriber;
   };
-
 
   struct ExtractedMaterial
   {
